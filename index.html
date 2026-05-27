@@ -257,7 +257,8 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
 })();
 </script>
 <div class="nav">
-  <button class="active" onclick="showTab('logg',this)">Logg</button>
+  <button class="active" onclick="showTab('hjem',this)">Hjem</button>
+  <button onclick="showTab('logg',this)">Logg</button>
   <button onclick="showTab('historikk',this)">Historikk</button>
   <button onclick="showTab('planlegg',this)">Planlegg</button>
   <button onclick="showTab('register',this)">Register</button>
@@ -266,8 +267,9 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
   <button onclick="showTab('inspirasjon',this)">Inspirasjon</button>
 </div>
 
-<!-- LOGG -->
-<div class="section active" id="tab-logg">
+<!-- HJEM -->
+<div class="section active" id="tab-hjem"></div>
+<div class="section" id="tab-logg">
   <details id="log-scenario-picker" style="margin-bottom:1.2rem;border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
     <summary style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:var(--text2);cursor:pointer;padding:10px 14px;background:var(--bg2)">Logg planlagt antrekk</summary>
     <div id="log-scenario-list" style="padding:10px 14px"></div>
@@ -1098,7 +1100,7 @@ const DEFAULT_LISTS=(()=>{
     'Liggeunderlag','Lommelykt','Lys til teltet','Mandler og nøtter',
     'Matolje','Myggspray','Mygglys','Nødlader','Oppblåsbar madrass',
     'Oppvaskbalje','Oppvasksåpe','Øretelefoner','Packraft',
-    'Padlebrett med åre','Padlevest','Pinsett/flåttfjerner',
+    'Padlebrett med åre','Padlevest','Pinsett/flåttfjerner','Pass',
     'Plaster og sårrens','Pulverkaffe','Pumpe til oppblåsbar madrass',
     'Pumpe til padleutstyr','Rødsprit','Saft','Salt','Salve til myggstikk',
     'Sjampo','Sjokolade','Sleiv',
@@ -1107,23 +1109,28 @@ const DEFAULT_LISTS=(()=>{
     'Tegnesaker','Telt med teltplugger','Tørrmat','Termos',
     'Vanndunk','Våtservietter'
   ])]),
-  'Storbyferie':s([...new Set([...felles,'Antibac','Reiseadapter'])]),
+  'Storbyferie':s([...new Set([...felles,'Antibac','Førerkort (fysisk)','Reiseadapter'])]),
   'Strandferie':s([...new Set([...felles,
-    'Badehåndkle','Drikkeflaske','Lesestoff','Solbriller','Solkrem','Strandduk'
+    'Badehåndkle','Drikkeflaske','Førerkort (fysisk)','Lesestoff','Pass','Solbriller','Solkrem','Strandduk'
   ])]),
   'Fjelltur':s([...new Set([...felles,
     'Allergimedisiner','Antibac','Drikkeflaske','Fiskestang','Fjellsko','Fyrstikker',
     'Gnagsårplaster','Kniv','Kompass','Lesestoff','Lommelykt',
     'Myggspray','Nødlader','Pinsett/flåttfjerner','Plaster og sårrens',
     'Rødsprit','Salve til myggstikk','Sjampo','Silkesengesett',
-    'Solkrem','Sovepose','Stormkjøkken','Såpe','Termos','Tørrmat',
+    'Solkrem','Sovepose','Spade (sikkerhetsutstyr)','Skredsøker',
+    'Stormkjøkken','Såpe','Termos','Tørrmat',
     'Vindsekk','Våtservietter'
   ])]),
-  'Jobbreise sommer':s([...new Set([...felles,'Nødlader','Pass','PC','PC-lader','Reiseadapter'])]),
-  'Jobbreise vår/høst':s([...new Set([...felles,'Nødlader','Pass','PC','PC-lader','Reiseadapter'])]),
-  'Jobbreise vinter':s([...new Set([...felles,'Nødlader','Pass','PC','PC-lader','Reiseadapter'])]),
+  'Jobbreise sommer':s([...new Set([...felles,'Førerkort (fysisk)','Nødlader','Pass','PC','PC-lader','Reiseadapter'])]),
+  'Jobbreise vår/høst':s([...new Set([...felles,'Førerkort (fysisk)','Nødlader','Pass','PC','PC-lader','Reiseadapter'])]),
+  'Jobbreise vinter':s([...new Set([...felles,'Førerkort (fysisk)','Nødlader','Pass','PC','PC-lader','Reiseadapter'])]),
   'Hyttetur':s([...new Set([...felles,
     'Langrennsski','Langrennsstaver','Lesestoff','Slalåmski','Slalåmstaver','Strikketøy','Tegnesaker'
+  ])]),
+  'Roadtrip':s([...new Set([...felles,
+    'Campingbord','Campingstoler','Dyner','Gode spillelister (musikk)','Gode spillelister (podcaster)',
+    'Laken','Madrass til bilen','Puter','Sengetøy','Tarp'
   ])])
   };
 })();
@@ -2106,6 +2113,7 @@ function showTab(id,btn){
   document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
   btn.classList.add('active');
+  if(id==='hjem')renderHjem();
   if(id==='logg')renderLogScenarioPicker();
   if(id==='historikk')renderHistory();
   if(id==='planlegg'){renderScenarios();refreshOccSelects();}
@@ -2113,6 +2121,82 @@ function showTab(id,btn){
   if(id==='pakkeliste'){renderPackLists();}
   if(id==='analyse')renderAnalyse();
   if(id==='inspirasjon')renderInspirasjon();
+}
+
+function renderHjem(){
+  const cont=document.getElementById('tab-hjem');
+  const hasData=outfits.length||register.length||scenarios.length;
+
+  if(!hasData){
+    cont.innerHTML=`
+      <div style="padding:1.5rem 0 1rem">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:2rem;line-height:1.7">
+          Habitt er et gammelt, norsk ord for antrekk — habit er engelsk for vane. Appen Habitt gir deg en digital tvilling av din egen garderobe som du bygger nedenfra og opp gjennom å logge faktisk bruk. På den måten får du oversikt over hva du har og hva du eventuelt mangler. Start med å legge inn dagens antrekk, eller legg til plagg i registeret.
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;max-width:280px">
+          <button class="btn-primary" style="margin-top:0" onclick="document.querySelector('.nav button:nth-child(2)').click()">+ Logg et antrekk</button>
+          <button class="btn-ghost" onclick="document.querySelector('.nav button:nth-child(5)').click()">→ Legg til plagg i register</button>
+          <button class="btn-ghost" onclick="document.querySelector('.nav button:nth-child(4)').click()">→ Planlegg et scenario</button>
+        </div>
+        <div style="margin-top:2.5rem;display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--text3);text-align:left;border-top:0.5px solid var(--border);padding-top:1.5rem">
+          <div><strong style="color:var(--text2)">Logg</strong> — Registrer hva du har på deg og når</div>
+          <div><strong style="color:var(--text2)">Register</strong> — Oversikt over plaggene dine</div>
+          <div><strong style="color:var(--text2)">Planlegg</strong> — Sett sammen antrekk for fremtidige anledninger</div>
+          <div><strong style="color:var(--text2)">Pakkeliste</strong> — Sett sammen pakkelister fra registeret ditt</div>
+          <div><strong style="color:var(--text2)">Analyse</strong> — Se mønstre i garderoben din</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  // Stats
+  const dominantKat=(()=>{
+    const count={};
+    outfits.forEach(o=>(o.plagg||[]).forEach(p=>(p.colors||[]).forEach(c=>{
+      const k=katForShade(c.n);
+      if(k&&k!=='Hvit og beige'&&k!=='Grå og svart')count[k]=(count[k]||0)+1;
+    })));
+    const sorted=Object.entries(count).sort((a,b)=>b[1]-a[1]);
+    return sorted[0]?sorted[0][0]:null;
+  })();
+
+  const regActive=register.filter(r=>r.status==='I skapet').length;
+  const regTotal=register.length;
+  const lastOutfit=outfits[outfits.length-1];
+  const lastDate=lastOutfit?lastOutfit.date:'–';
+
+  cont.innerHTML=`
+    <div style="padding:0.5rem 0 1.5rem">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:1.5rem">
+        <div style="background:var(--bg2);border-radius:var(--radius);padding:12px 10px;text-align:center">
+          <div style="font-size:22px;font-weight:600;color:var(--text)">${outfits.length}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">loggede antrekk</div>
+        </div>
+        <div style="background:var(--bg2);border-radius:var(--radius);padding:12px 10px;text-align:center">
+          <div style="font-size:22px;font-weight:600;color:var(--text)">${regActive}<span style="font-size:13px;color:var(--text3)">/${regTotal}</span></div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">plagg i skapet</div>
+        </div>
+        <div style="background:var(--bg2);border-radius:var(--radius);padding:12px 10px;text-align:center">
+          <div style="font-size:22px;font-weight:600;color:var(--text)">${scenarios.length}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">scenarioer</div>
+        </div>
+      </div>
+
+      ${dominantKat?`<div style="font-size:13px;color:var(--text2);margin-bottom:1.2rem;padding:10px 12px;background:var(--bg2);border-radius:var(--radius)">
+        Din vanligste farge i loggede antrekk: <strong style="color:var(--text)">${dominantKat}</strong>
+      </div>`:''}
+
+      ${lastOutfit?`<div style="font-size:12px;color:var(--text3);margin-bottom:1.2rem">Sist logget: ${lastDate}${lastOutfit.occasion?' · '+lastOutfit.occasion:''}</div>`:''}
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn-primary" style="margin-top:0" onclick="document.querySelector('.nav button:nth-child(2)').click()">+ Logg dagens antrekk</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn-ghost" onclick="document.querySelector('.nav button:nth-child(4)').click()">Planlegg scenario</button>
+          <button class="btn-ghost" onclick="document.querySelector('.nav button:nth-child(6)').click()">Ny pakkeliste</button>
+        </div>
+      </div>
+    </div>`;
 }
 function exportData(){
   const b=new Blob([JSON.stringify({outfits,scenarios,register,customOcc,packLists},null,2)],{type:'application/json'});
@@ -2156,6 +2240,7 @@ loadData();
 document.getElementById('log-date').value=new Date().toISOString().split('T')[0];
 refreshOccSelects();
 initPlaggBtns(document.getElementById('log-plagg-container'),document.getElementById('log-plagg-btns'),'log');
+renderHjem();
 </script>
 </body>
 </html>
