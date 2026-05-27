@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Habitt</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23f7f3ef'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Georgia,serif' font-size='28' font-weight='700' fill='%232a2218'>Habit<tspan fill='%23c8b89a'>t</tspan></text></svg>">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23f7f3ef'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Georgia,serif' font-size='28' font-weight='700' fill='%232a2218'>Habit<tspan fill='%23c8b89a'>t</tspan></text></svg>">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Habitt">
@@ -1082,9 +1082,9 @@ const DEFAULT_LISTS=(()=>{
     'Tegnesaker','Telt med teltplugger','Tørrmat','Termos',
     'Vanndunk','Våtservietter'
   ])]),
-  'Storbyferie':s([...new Set([...felles])]),
+  'Storbyferie':s([...new Set([...felles,'Antibac','Reiseadapter'])]),
   'Strandferie':s([...new Set([...felles,
-    'Badehåndkle','Drikkeflaske','Lesestoff','Solbriller','Solkrem','Strandhåndkle'
+    'Badehåndkle','Drikkeflaske','Lesestoff','Solbriller','Solkrem','Strandduk'
   ])]),
   'Fjelltur':s([...new Set([...felles,
     'Allergimedisiner','Antibac','Drikkeflaske','Fiskestang','Fjellsko','Fyrstikker',
@@ -1094,9 +1094,12 @@ const DEFAULT_LISTS=(()=>{
     'Solkrem','Sovepose','Stormkjøkken','Såpe','Termos','Tørrmat',
     'Vindsekk','Våtservietter'
   ])]),
-  'Jobbreise sommer':s([...new Set([...felles,'Nødlader','Pass','PC','PC-lader'])]),
-  'Jobbreise vår/høst':s([...new Set([...felles,'Nødlader','Pass','PC','PC-lader'])]),
-  'Jobbreise vinter':s([...new Set([...felles,'Nødlader','Pass','PC','PC-lader'])])
+  'Jobbreise sommer':s([...new Set([...felles,'Nødlader','Pass','PC','PC-lader','Reiseadapter'])]),
+  'Jobbreise vår/høst':s([...new Set([...felles,'Nødlader','Pass','PC','PC-lader','Reiseadapter'])]),
+  'Jobbreise vinter':s([...new Set([...felles,'Nødlader','Pass','PC','PC-lader','Reiseadapter'])]),
+  'Hyttetur':s([...new Set([...felles,
+    'Langrennsski','Langrennsstaver','Lesestoff','Slalåmski','Slalåmstaver','Strikketøy','Tegnesaker'
+  ])])
   };
 })();
 
