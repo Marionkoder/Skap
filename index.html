@@ -479,21 +479,26 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
 <script>
 // ── FARGE DATA ────────────────────────────────────────────────────────────────
 const FARGE_KAT={
-  'Hvit og beige':[{n:'White',h:'#FFFFFF'},{n:'FloralWhite',h:'#FFFAF0'},{n:'Beige',h:'#F5F5DC'},{n:'AntiqueWhite',h:'#FAEBD7'},{n:'BlanchedAlmond',h:'#FFEBCD'},{n:'Wheat',h:'#F5DEB3'},{n:'OldLace',h:'#FDF5E6'}],
-  'Gul':[{n:'Yellow',h:'#FFFF00'},{n:'Gold',h:'#FFD700'},{n:'LemonChiffon',h:'#FFFACD'},{n:'GoldenRod',h:'#DAA520'}],
-  'Oransje og fersken':[{n:'Orange',h:'#FFA500'},{n:'DarkOrange',h:'#FF8C00'},{n:'Gull',h:'#FFD700'},{n:'PeachPuff',h:'#FFDAB9'},{n:'LightSalmon',h:'#FFA07A'},{n:'DarkSalmon',h:'#E9967A'},{n:'Salmon',h:'#FA8072'},{n:'Coral',h:'#FF7F50'},{n:'SandyBrown',h:'#F4A460'}],
-  'Rød':[{n:'Rustrød',h:'#990000'},{n:'Red',h:'#FF0000'},{n:'Crimson',h:'#DC143C'},{n:'FireBrick',h:'#B22222'},{n:'DarkRed',h:'#8B0000'},{n:'IndianRed',h:'#CD5C5C'},{n:'OrangeRed',h:'#FF4500'},{n:'Tomato',h:'#FF6347'},{n:'Maroon',h:'#800000'}],
-  'Rosa':[{n:'Pink',h:'#FFC0CB'},{n:'LightPink',h:'#FFB6C1'},{n:'Rosegull',h:'#E8B4A0'},{n:'HotPink',h:'#FF69B4'},{n:'DeepPink',h:'#FF1493'},{n:'MistyRose',h:'#FFE4E1'},{n:'PaleVioletRed',h:'#DB7093'},{n:'MediumVioletRed',h:'#C71585'},],
-  'Lilla':[{n:'Orchid',h:'#DA70D6'},{n:'MediumOrchid',h:'#BA55D3'},{n:'DarkOrchid',h:'#9932CC'},{n:'DarkViolet',h:'#9400D3'},{n:'BlueViolet',h:'#8A2BE2'},{n:'Purple',h:'#800080'},{n:'RebeccaPurple',h:'#663399'},{n:'MediumPurple',h:'#9370DB'},],
-  'Blå':[{n:'Mørkeblå',h:'#0C2850'},{n:'MarineBlå',h:'#0C4478'},{n:'MidnightBlue',h:'#191970'},{n:'DarkBlue',h:'#00008B'},{n:'MediumBlue',h:'#0000CD'},{n:'Blue',h:'#0000FF'},{n:'SteelBlue',h:'#4682B4'},{n:'CornflowerBlue',h:'#6495ED'},{n:'DeepSkyBlue',h:'#00BFFF'},{n:'LightSkyBlue',h:'#87CEFA'},{n:'LightBlue',h:'#ADD8E6'},{n:'LightSteelBlue',h:'#B0C4DE'},{n:'PowderBlue',h:'#B0E0E6'},{n:'AliceBlue',h:'#F0F8FF'},{n:'SlateBlue',h:'#6A5ACD'},{n:'Indigo',h:'#4B0082'},{n:'DarkSlateBlue',h:'#483D8B'}],
-  'Turkis og mint':[{n:'DarkTeal',h:'#045D5D'},{n:'DarkCyan',h:'#008B8B'},{n:'LightSeaGreen',h:'#20B2AA'},{n:'CadetBlue',h:'#5F9EA0'},{n:'DarkTurquoise',h:'#00CED1'},{n:'MediumTurquoise',h:'#48D1CC'},{n:'Turquoise',h:'#40E0D0'},{n:'PaleTurquoise',h:'#AFEEEE'},{n:'Aquamarine',h:'#7FFFD4'}],
-  'Grønn':[{n:'MørkGrønn',h:'#4E5E4C'},{n:'DarkGreen',h:'#006400'},{n:'TeaGreen',h:'#D0F0C0'},{n:'ForestGreen',h:'#228B22'},{n:'SeaGreen',h:'#2E8B57'},{n:'MediumSeaGreen',h:'#3CB371'},{n:'LimeGreen',h:'#32CD32'},{n:'DarkOliveGreen',h:'#556B2F'},{n:'OliveDrab',h:'#6B8E23'},{n:'Olive',h:'#808000'},{n:'DarkKhaki',h:'#BDB76B'},{n:'YellowGreen',h:'#9ACD32'},{n:'DarkSeaGreen',h:'#8FBC8F'},{n:'LightGreen',h:'#90EE90'},{n:'PaleGreen',h:'#98FB98'},{n:'HoneyDew',h:'#F0FFF0'}],
-  'Brun':[{n:'DarkBrown',h:'#5C4033'},{n:'SaddleBrown',h:'#8B4513'},{n:'Sienna',h:'#A0522D'},{n:'Brown',h:'#A52A2A'},{n:'Chocolate',h:'#D2691E'},{n:'Bronse',h:'#CD7F32'},{n:'Peru',h:'#CD853F'},{n:'DarkGoldenRod',h:'#B8860B'},{n:'Tan',h:'#D2B48C'},{n:'BurlyWood',h:'#DEB887'}],
-  'Grå og svart':[{n:'Gainsboro',h:'#DCDCDC'},{n:'LightGray',h:'#D3D3D3'},{n:'Sølv',h:'#C0C0C0'},{n:'Silver',h:'#A8A9AD'},{n:'DarkGray',h:'#A9A9A9'},{n:'Gray',h:'#808080'},{n:'DimGray',h:'#696969'},{n:'DarkSlateGray',h:'#2F4F4F'},{n:'Black',h:'#000000'}],
-
+  'Hvit og beige':[{n:'Hvit',h:'#FFFFFF'},{n:'Svart',h:'#000000'}],
+  'Rød':[{n:'Frisk rød',h:'#EA1F41'},{n:'Vinrød',h:'#722F37'}],
+  'Rosa':[{n:'Gammelrosa',h:'#D47D7F'}],
+  'Grønn':[{n:'Gressgrønn',h:'#61A85A'}],
+  'Brun':[{n:'Lærbrun',h:'#C57E4B'}],
+  'Metall':[{n:'Gull',h:'#C5A028',metal:true},{n:'Sølv',h:'#DFDFDF',metal:true}],
+  'Grå og svart':[],
 };
 const FARGEKAT_NAMES=Object.keys(FARGE_KAT);
 function katForShade(n){for(const[k,s]of Object.entries(FARGE_KAT)){if(s.find(x=>x.n===n))return k;}return'';}
+function allShades(){return Object.values(FARGE_KAT).flat();}
+function shadeForName(n){return allShades().find(s=>s.n===n);}
+
+// Render a colour square, with ✦ in upper-right quadrant for metallic colours
+function catSq(c,size=13){
+  if(!c)return'';
+  const metal=c.metal||false;
+  const star=metal?`<span style="position:absolute;top:0;right:0;width:50%;height:50%;display:flex;align-items:center;justify-content:center;font-size:${Math.max(6,Math.round(size*0.55))}px;line-height:1;color:rgba(255,255,255,0.75);pointer-events:none">✦</span>`:'';
+  return `<div class="cat-sq" style="background:${c.h};width:${size}px;height:${size}px;position:relative" title="${c.n}">${star}</div>`;
+}
 
 const TEMP_CATS=["Iskaldt","Kaldt","Kjølig","Mildt","Linnt","Varmt","Glovarmt"];
 const PLAGG_TYPER=['Overdel','Underdel','Ytterlag','Sko','Tilbehør','Helfigur','Smykker'];
@@ -615,7 +620,7 @@ function buildColorAccordion(instanceId,preSelected){
       // sort by original palette order
       const ordered=allShades.filter(s=>katShades.find(k=>k.n===s.n));
       const hdr=document.createElement('div');hdr.className='color-cat-header';
-      const dots=ordered.map(s=>`<div class="cat-sq" style="background:${s.h}"></div>`).join('');
+      const dots=ordered.map(s=>catSq(s)).join('');
       hdr.innerHTML=`<span class="cc-name">${kat}</span><div class="cc-dots">${dots}</div>`;
       const panel=document.createElement('div');panel.className='color-cat-panel';
       ordered.forEach(shade=>{
@@ -674,7 +679,7 @@ function openFullPaletteModal(instanceId,sel,onUpdate){
   const acc=document.createElement('div');acc.className='color-accordion';
   Object.entries(FARGE_KAT).forEach(([kat,shades])=>{
     const hdr=document.createElement('div');hdr.className='color-cat-header';
-    const dots=shades.slice(0,10).map(s=>`<div class="cat-sq" style="background:${s.h}"></div>`).join('');
+    const dots=shades.slice(0,10).map(s=>catSq(s)).join('');
     hdr.innerHTML=`<span class="cc-name">${kat}</span><div class="cc-dots">${dots}</div>`;
     const panel=document.createElement('div');panel.className='color-cat-panel';
     shades.forEach(shade=>{
@@ -837,7 +842,7 @@ function renderHistory(){
   if(!shown.length){list.innerHTML='<div class="log-empty">Ingen antrekk logget ennå.</div>';return;}
   list.innerHTML=shown.map(o=>{
     const ph=(o.plagg||[]).map(p=>{
-      const dots=(p.colors||[]).map(c=>`<div class="cat-sq" style="background:${c.h}" title="${c.n}"></div>`).join('');
+      const dots=(p.colors||[]).map(c=>catSq(c)).join('');
       return `<div class="plagg-row"><span class="type-lbl">${p.type}</span><div style="flex:1"><span>${p.naam||'–'}</span>${p.besk?`<div style="font-size:11px;color:var(--text3);margin-top:1px">${p.besk}</div>`:''}</div>${dots?`<div class="color-dots-row">${dots}</div>`:''}</div>`;
     }).join('');
     return `<div class="card">
@@ -957,7 +962,7 @@ function renderScenarios(){
   if(!scenarios.length){list.innerHTML='<div class="log-empty">Ingen scenarioer lagt til ennå.<br><span style="font-size:12px">Trykk «+ Nytt scenario» for å komme i gang.</span></div>';return;}
   list.innerHTML=scenarios.map(s=>{
     const ph=(s.plagg||[]).map(p=>{
-      const dots=(p.colors||[]).map(c=>`<div class="cat-sq" style="background:${c.h}" title="${c.n}"></div>`).join('');
+      const dots=(p.colors||[]).map(c=>catSq(c)).join('');
       return `<div class="plagg-row"><span class="type-lbl">${p.type}</span><div style="flex:1"><span>${p.naam||'–'}</span>${p.besk?`<div style="font-size:11px;color:var(--text3);margin-top:1px">${p.besk}</div>`:''}</div>${dots?`<div class="color-dots-row">${dots}</div>`:''}</div>`;
     }).join('');
     return `<div class="scenario-card">
@@ -999,7 +1004,7 @@ function renderRegister(){
   if(!items.length){list.innerHTML='<div class="log-empty">Ingen plagg funnet.</div>';return;}
   items.sort((a,b)=>a.type>b.type?1:a.type<b.type?-1:a.naam>b.naam?1:-1);
   list.innerHTML=items.map(r=>{
-    const dots=(r.colors||[]).map(c=>`<div class="cat-sq" style="background:${c.h}" title="${c.n}"></div>`).join('');
+    const dots=(r.colors||[]).map(c=>catSq(c)).join('');
     return `<div class="reg-item">
       <span class="reg-item-type">${r.type}</span>
       <div style="flex:1;min-width:100px"><span style="font-weight:500">${r.naam}</span>${r.besk?`<div style="font-size:11px;color:var(--text3);margin-top:1px">${r.besk}</div>`:''}</div>
@@ -1239,7 +1244,7 @@ function renderActivePackList(){
     const items=byType[type];if(!items||!items.length)return;
     clothesHtml+=`<div class="pack-section"><h3>${type}</h3>`;
     items.forEach(item=>{
-      const dots=(item.colors||[]).map(c=>`<div class="cat-sq" style="background:${c.h}" title="${c.n}"></div>`).join('');
+      const dots=(item.colors||[]).map(c=>catSq(c)).join('');
       clothesHtml+=`<div class="pack-item${item.checked?' checked':''}" id="pli-${pl.id}-${item.id}">
         <input type="checkbox"${item.checked?' checked':''} onchange="togglePackItem('${pl.id}','${item.id}',this.checked)">
         <div style="flex:1;display:flex;align-items:center;gap:6px">
@@ -1718,39 +1723,19 @@ function getDominantCats(colors){
 
 function getMissingCats(colors){
   const used=new Set(colors.map(c=>katForShade(c.n)).filter(Boolean));
-  // categories we want to suggest from
-  const suggest=['Grønn','Gul','Lilla','Blå','Rød','Rosa','Turkis og mint','Oransje og fersken','Brun','Hvit og beige'];
+  const suggest=['Grønn','Rød','Rosa','Brun','Metall'];
   return suggest.filter(c=>!used.has(c));
 }
 
 function getRepColors(catName, undertone){
-  // Pick representative warm or cool shade from each category
-  const warmPicks={
-    'Grønn':     [{n:'OliveDrab',h:'#6B8E23'},{n:'DarkOliveGreen',h:'#556B2F'},{n:'YellowGreen',h:'#9ACD32'}],
-    'Gul':       [{n:'GoldenRod',h:'#DAA520'},{n:'Gold',h:'#FFD700'},{n:'LemonChiffon',h:'#FFFACD'}],
-    'Lilla':     [{n:'MediumPurple',h:'#9370DB'},{n:'Orchid',h:'#DA70D6'},{n:'PaleVioletRed',h:'#DB7093'}],
-    'Blå':       [{n:'SteelBlue',h:'#4682B4'},{n:'CornflowerBlue',h:'#6495ED'},{n:'DeepSkyBlue',h:'#00BFFF'}],
-    'Rosa':      [{n:'HotPink',h:'#FF69B4'},{n:'PaleVioletRed',h:'#DB7093'},{n:'LightPink',h:'#FFB6C1'}],
-    'Rød':       [{n:'Tomato',h:'#FF6347'},{n:'Crimson',h:'#DC143C'},{n:'OrangeRed',h:'#FF4500'}],
-    'Turkis og mint':[{n:'MediumTurquoise',h:'#48D1CC'},{n:'Aquamarine',h:'#7FFFD4'},{n:'LightSeaGreen',h:'#20B2AA'}],
-    'Oransje og fersken':[{n:'Coral',h:'#FF7F50'},{n:'DarkOrange',h:'#FF8C00'},{n:'Salmon',h:'#FA8072'}],
-    'Brun':      [{n:'Chocolate',h:'#D2691E'},{n:'Peru',h:'#CD853F'},{n:'SaddleBrown',h:'#8B4513'}],
-    'Hvit og beige': [{n:'Beige',h:'#F5F5DC'},{n:'OldLace',h:'#FDF5E6'},{n:'BlanchedAlmond',h:'#FFEBCD'}],
+  const picks={
+    'Grønn':    [{n:'Gressgrønn',h:'#61A85A'}],
+    'Rød':      [{n:'Frisk rød',h:'#EA1F41'},{n:'Vinrød',h:'#722F37'}],
+    'Rosa':     [{n:'Gammelrosa',h:'#D47D7F'}],
+    'Brun':     [{n:'Lærbrun',h:'#C57E4B'}],
+    'Metall':   [{n:'Gull',h:'#C5A028',metal:true},{n:'Sølv',h:'#DFDFDF',metal:true}],
   };
-  const coolPicks={
-    'Grønn':     [{n:'SeaGreen',h:'#2E8B57'},{n:'MediumSeaGreen',h:'#3CB371'},{n:'DarkGreen',h:'#006400'}],
-    'Gul':       [{n:'LemonChiffon',h:'#FFFACD'},{n:'GoldenRod',h:'#DAA520'}],
-    'Lilla':     [{n:'Indigo',h:'#4B0082'}],
-    'Blå':       [{n:'MidnightBlue',h:'#191970'},{n:'Blue',h:'#0000FF'},{n:'PowderBlue',h:'#B0E0E6'}],
-    'Rosa':      [{n:'MistyRose',h:'#FFE4E1'},{n:'DeepPink',h:'#FF1493'}],
-    'Rød':       [{n:'Crimson',h:'#DC143C'},{n:'FireBrick',h:'#B22222'},{n:'DarkRed',h:'#8B0000'}],
-    'Turkis og mint':[{n:'DarkTeal',h:'#045D5D'},{n:'DarkCyan',h:'#008B8B'},{n:'PaleTurquoise',h:'#AFEEEE'}],
-    'Oransje og fersken':[{n:'PeachPuff',h:'#FFDAB9'},{n:'LightSalmon',h:'#FFA07A'}],
-    'Brun':      [{n:'Sienna',h:'#A0522D'},{n:'Tan',h:'#D2B48C'},{n:'BurlyWood',h:'#DEB887'}],
-    'Hvit og beige': [{n:'AntiqueWhite',h:'#FAEBD7'},{n:'OldLace',h:'#FDF5E6'},{n:'BlanchedAlmond',h:'#FFEBCD'}],
-  };
-  const picks=(undertone==='kald'?coolPicks:warmPicks)[catName]||warmPicks[catName]||[];
-  return picks;
+  return picks[catName]||[];
 }
 
 function getBestCombos(){
@@ -1993,7 +1978,7 @@ function showRegMatrixCell(type,temp){
       <button class="btn-ghost" style="padding:4px 10px" onclick="document.getElementById('reg-matrix-popup').remove()">×</button>
     </div>`;
   items.forEach(r=>{
-    const dots=(r.colors||[]).map(c=>`<div class="cat-sq" style="background:${c.h}" title="${c.n}"></div>`).join('');
+    const dots=(r.colors||[]).map(c=>catSq(c)).join('');
     const badge=r.status==='På lager'?`<span class="reg-status-badge lagret">På lager</span>`:'';
     content+=`<div style="padding:7px 0;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:8px">
       <div style="flex:1">
