@@ -380,9 +380,14 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
     <div style="overflow-x:auto"><table id="register-matrix" style="width:100%;border-collapse:collapse;font-size:12px"></table></div>
   </div>
   <div class="analyse-block">
-    <div class="analyse-block-title">Fargekart</div>
+    <div class="analyse-block-title">Fargekart — loggede antrekk</div>
     <p style="font-size:12px;color:var(--text2);margin-bottom:0.8rem">Farger brukt i loggede antrekk, per anledning og temperatur. Trykk en celle for detaljer.</p>
     <div style="overflow-x:auto"><table id="color-heatmap" style="width:100%;border-collapse:collapse;font-size:12px"></table></div>
+  </div>
+  <div class="analyse-block">
+    <div class="analyse-block-title">Fargekart — register</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:0.8rem">Farger registrert per plaggtype og temperatur.</p>
+    <div style="overflow-x:auto"><table id="color-heatmap-register" style="width:100%;border-collapse:collapse;font-size:12px"></table></div>
   </div>
 </div>
 
@@ -413,6 +418,7 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
       <label>Plagg</label>
       <div id="sm-plagg-container"></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px" id="sm-plagg-btns"></div>
+      <div id="sm-register-browser" style="margin-top:10px"></div>
     </div>
     <div class="field"><label>Notater (valgfritt)</label><textarea id="sm-notes" rows="2" style="resize:vertical"></textarea></div>
     <div class="modal-btns">
@@ -892,6 +898,60 @@ function renderSmOccBtns(selected){
   const btns=document.getElementById('sm-occasion-btns');if(!btns)return;
   btns.innerHTML=allOcc().map(o=>`<button class="reg-filter-btn${selected.includes(o)?' active':''}" style="font-size:11px;padding:3px 9px" onclick="toggleSmOcc('${o}')">${o}</button>`).join('');
 }
+
+function renderSmRegisterBrowser(){
+  const browser=document.getElementById('sm-register-browser');
+  if(!browser)return;
+  if(!register.length){browser.innerHTML='';return;}
+
+  const selectedTemps=getSmTemps();
+
+  const byType={};
+  register.forEach(r=>{
+    // Filter by selected temps if any are chosen
+    const tempMatch=!selectedTemps.length||
+      (r.temps||[]).some(t=>selectedTemps.includes(t));
+    if(!tempMatch)return;
+    if(!byType[r.type])byType[r.type]=[];
+    byType[r.type].push(r);
+  });
+
+  const hasAny=Object.values(byType).some(a=>a.length);
+  if(!hasAny){
+    browser.innerHTML=`<div style="font-size:12px;color:var(--text3);margin-top:4px">Ingen plagg i registeret matcher valgt temperatur.</div>`;
+    return;
+  }
+
+  const cont=document.getElementById('sm-plagg-container');
+  browser.innerHTML='<div style="border-top:0.5px solid var(--border);margin-top:8px;padding-top:10px">'+
+    '<div style="font-size:11px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">Velg fra register</div>'+
+    PLAGG_TYPER.filter(t=>byType[t]?.length).map(type=>`
+      <div style="margin-bottom:8px">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3);margin-bottom:4px">${type}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">
+          ${byType[type].map(r=>{
+            const dots=(r.colors||[]).slice(0,3).map(c=>`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c.h};border:0.5px solid rgba(0,0,0,0.1)"></span>`).join('');
+            return `<button class="reg-filter-btn" style="font-size:11px;padding:3px 9px;display:flex;align-items:center;gap:4px"
+              onclick="addSmRegItem('${r.id}')">${dots?dots+' ':''}${r.naam}</button>`;
+          }).join('')}
+        </div>
+      </div>`).join('')+
+    '</div>';
+}
+
+function addSmRegItem(regId){
+  const r=register.find(x=>String(x.id)===String(regId));
+  if(!r)return;
+  const cont=document.getElementById('sm-plagg-container');
+  addPlaggItem(cont,r.type,'sm',r);
+}
+
+function toggleSmTemp(i){
+  const btns=document.querySelectorAll('#sm-temp-btns .reg-filter-btn');
+  if(btns[i])btns[i].classList.toggle('active');
+  renderSmRegisterBrowser();
+}
+
 function toggleSmOcc(o){
   const btn=[...document.querySelectorAll('#sm-occasion-btns .reg-filter-btn')].find(b=>b.textContent===o);
   if(btn)btn.classList.toggle('active');
@@ -901,10 +961,6 @@ function getSmOccs(){return [...document.querySelectorAll('#sm-occasion-btns .re
 function renderSmTempBtns(selected){
   const btns=document.getElementById('sm-temp-btns');if(!btns)return;
   btns.innerHTML=TEMP_CATS.map((t,i)=>`<button class="reg-filter-btn${selected.includes(i)?' active':''}" style="font-size:11px;padding:3px 9px" onclick="toggleSmTemp(${i})">${t}</button>`).join('');
-}
-function toggleSmTemp(i){
-  const btns=document.querySelectorAll('#sm-temp-btns .reg-filter-btn');
-  if(btns[i])btns[i].classList.toggle('active');
 }
 function getSmTemps(){return [...document.querySelectorAll('#sm-temp-btns .reg-filter-btn.active')].map(b=>TEMP_CATS.indexOf(b.textContent));}
 
@@ -920,6 +976,7 @@ function openNewScenarioModal(){
   const cont=document.getElementById('sm-plagg-container');
   const btns=document.getElementById('sm-plagg-btns');
   initPlaggBtns(cont,btns,'sm');
+  renderSmRegisterBrowser();
   document.getElementById('scenario-modal').classList.add('open');
 }
 function openEditScenarioModal(id){
@@ -935,6 +992,7 @@ function openEditScenarioModal(id){
   const btns=document.getElementById('sm-plagg-btns');
   initPlaggBtns(cont,btns,'sm');
   (s.plagg||[]).forEach(p=>addPlaggItem(cont,p.type,'sm',p));
+  renderSmRegisterBrowser();
   document.getElementById('scenario-modal').classList.add('open');
 }
 function closeScenarioModal(){document.getElementById('scenario-modal').classList.remove('open');clearPlaggContainer('sm');editingScenarioId=null;}
@@ -1555,6 +1613,7 @@ function renderAnalyse(){
   buildWardrobeMatrix();
   buildRegisterMatrix();
   buildColorHeatmap();
+  buildColorHeatmapRegister();
 }
 
 
@@ -2053,6 +2112,66 @@ function buildColorHeatmap(){
         html+=`<td style="${tdBase}" onclick="showColorHeatmapCell('${occ}',${t})">
           <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center">${dots}${more}</div>
         </td>`;
+      }
+    });
+    html+='</tr>';
+  });
+  html+='</tbody>';
+  table.innerHTML=html;
+}
+
+function buildColorHeatmapRegister(){
+  const table=document.getElementById('color-heatmap-register');
+  if(!table)return;
+
+  // Rows: PLAGG_TYPER, Cols: TEMP_CATS
+  const usedTypes=new Set();
+  const usedTemps=new Set();
+  register.forEach(r=>{
+    if((r.colors||[]).length&&(r.temps||[]).length){
+      usedTypes.add(r.type);
+      (r.temps||[]).forEach(t=>usedTemps.add(t));
+    }
+  });
+
+  if(!usedTypes.size){
+    table.innerHTML='<tr><td style="padding:1rem;color:var(--text3);font-size:13px">Ingen data ennå.</td></tr>';
+    return;
+  }
+
+  const types=PLAGG_TYPER.filter(t=>usedTypes.has(t));
+  const temps=TEMP_CATS.map((_,i)=>i).filter(i=>usedTemps.has(i));
+
+  const cells={};
+  register.forEach(r=>{
+    if(!(r.colors||[]).length)return;
+    (r.temps||[]).forEach(t=>{
+      const key=r.type+'_'+t;
+      if(!cells[key])cells[key]={};
+      (r.colors||[]).forEach(c=>{if(!cells[key][c.n])cells[key][c.n]=c;});
+    });
+  });
+
+  const thStyle='padding:6px 8px;border:0.5px solid var(--border);background:var(--bg2);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.03em;white-space:nowrap;';
+  const tdBase='padding:4px;border:0.5px solid var(--border);vertical-align:middle;min-width:44px;';
+
+  let html='<thead><tr>';
+  html+=`<th style="${thStyle}background:var(--bg3)"></th>`;
+  temps.forEach(t=>html+=`<th style="${thStyle}">${TEMP_CATS[t].split(' ')[0]}</th>`);
+  html+='</tr></thead><tbody>';
+
+  types.forEach(type=>{
+    html+=`<tr><td style="${thStyle}text-align:left;padding:6px 10px">${type}</td>`;
+    temps.forEach(t=>{
+      const key=type+'_'+t;
+      const cell=cells[key];
+      const colors=cell?Object.values(cell):[];
+      if(!colors.length){
+        html+=`<td style="${tdBase}background:var(--bg)"></td>`;
+      } else {
+        const dots=colors.slice(0,8).map(c=>`<div style="width:10px;height:10px;border-radius:2px;background:${c.h};border:0.5px solid rgba(0,0,0,0.1);flex-shrink:0" title="${c.n}"></div>`).join('');
+        const more=colors.length>8?`<div style="font-size:9px;color:var(--text3)">+${colors.length-8}</div>`:'';
+        html+=`<td style="${tdBase}"><div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center">${dots}${more}</div></td>`;
       }
     });
     html+='</tr>';
