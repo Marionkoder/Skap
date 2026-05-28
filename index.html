@@ -479,13 +479,14 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
 <script>
 // ── FARGE DATA ────────────────────────────────────────────────────────────────
 const FARGE_KAT={
-  'Hvit og beige':[{n:'Hvit',h:'#FFFFFF'},{n:'Svart',h:'#000000'}],
-  'Rød':[{n:'Frisk rød',h:'#EA1F41'},{n:'Vinrød',h:'#722F37'}],
+  'Hvit og beige':[{n:'Hvit',h:'#FFFFFF'}],
+  'Rød':[{n:'Frisk rød',h:'#EA1F41'}],
   'Rosa':[{n:'Gammelrosa',h:'#D47D7F'}],
+  'Blå':[{n:'Nattblå',h:'#071932'}],
   'Grønn':[{n:'Gressgrønn',h:'#61A85A'}],
   'Brun':[{n:'Lærbrun',h:'#C57E4B'}],
   'Metall':[{n:'Gull',h:'#C5A028',metal:true},{n:'Sølv',h:'#DFDFDF',metal:true}],
-  'Grå og svart':[],
+  'Grå og svart':[{n:'Svart',h:'#000000'}],
 };
 const FARGEKAT_NAMES=Object.keys(FARGE_KAT);
 function katForShade(n){for(const[k,s]of Object.entries(FARGE_KAT)){if(s.find(x=>x.n===n))return k;}return'';}
