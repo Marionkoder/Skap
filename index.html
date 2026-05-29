@@ -489,7 +489,7 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
 <script>
 // ── FARGE DATA ────────────────────────────────────────────────────────────────
 const FARGE_KAT={
-  'Hvit og beige':[{n:'Hvit',h:'#FFFFFF'},{n:'Kremhvit',h:'#FAF6EF'}],
+  'Hvit og beige':[{n:'Hvit',h:'#FFFFFF'},{n:'Kremhvit',h:'#FAF6EF'},{n:'Lys beige',h:'#F0E8D9'}],
   'Rød':[{n:'Frisk rød',h:'#EA1F41'}],
   'Rosa':[{n:'Gammelrosa',h:'#D47D7F'},{n:'Lys lakserosa',h:'#EAA898'}],
   'Blå':[{n:'Nattblå',h:'#071932'},{n:'Varm blå',h:'#4A7FA0'},{n:'Frisk blå',h:'#5A88B8'},{n:'Himmelblå',h:'#2A90D0'},{n:'Bondeblå',h:'#4A7888'},{n:'Lys bondeblå',h:'#80B0B8'}],
@@ -1644,14 +1644,16 @@ function buildWardrobeMatrix(){
   const usedOcc=new Set();
   const usedTemp=new Set();
   outfits.forEach(o=>{if(o.occasion)usedOcc.add(o.occasion);if(o.temp!==undefined)usedTemp.add(o.temp);});
-  scenarios.forEach(s=>{if(s.occasion)usedOcc.add(s.occasion);if(s.temp!==undefined)usedTemp.add(s.temp);});
+  scenarios.forEach(s=>{
+    (s.occasions||[s.occasion].filter(Boolean)).forEach(o=>usedOcc.add(o));
+    (s.temps||[s.temp]).filter(t=>t!=null).forEach(t=>usedTemp.add(t));
+  });
 
   if(!usedOcc.size){
     table.innerHTML='<tr><td style="padding:1rem;color:var(--text3);font-size:13px">Ingen data ennå — logg antrekk for å bygge matrisen.</td></tr>';
     return;
   }
 
-  // rows = occasions (sorted by allOcc order), cols = temps (sorted cold→hot)
   const occs=allOcc().filter(o=>usedOcc.has(o));
   const temps=TEMP_CATS.map((t,i)=>i).filter(i=>usedTemp.has(i));
 
@@ -1664,13 +1666,17 @@ function buildWardrobeMatrix(){
     cells[key].outfits.push(o);
   });
   scenarios.forEach(s=>{
-    if(!s.occasion||s.temp===undefined)return;
-    const key=s.occasion+'_'+s.temp;
-    if(!cells[key])cells[key]={outfits:[],scenarios:[]};
-    cells[key].scenarios.push(s);
+    const sOccs=s.occasions||[s.occasion].filter(Boolean);
+    const sTemps=(s.temps||[s.temp]).filter(t=>t!=null);
+    sOccs.forEach(occ=>{
+      sTemps.forEach(t=>{
+        const key=occ+'_'+t;
+        if(!cells[key])cells[key]={outfits:[],scenarios:[]};
+        if(!cells[key].scenarios.includes(s))cells[key].scenarios.push(s);
+      });
+    });
   });
 
-  // Max count for heatmap intensity
   const counts=Object.values(cells).map(c=>c.outfits.length+c.scenarios.length);
   const maxCount=Math.max(...counts,1);
 
@@ -1693,7 +1699,6 @@ function buildWardrobeMatrix(){
       if(!total){
         html+=`<td style="${tdBase}background:var(--bg)"></td>`;
       } else {
-        const intensity=Math.round((total/maxCount)*0.7*255);
         const bg=`rgba(70,130,180,${(total/maxCount)*0.7})`;
         const textColor=total/maxCount>0.5?'#fff':'var(--text)';
         const title=`${occ} · ${TEMP_CATS[t]}: ${logCount} logget${planCount?' + '+planCount+' planlagt':''}`;
@@ -1711,7 +1716,11 @@ function buildWardrobeMatrix(){
 
 function showMatrixCell(occ,temp){
   const loggedHere=outfits.filter(o=>o.occasion===occ&&o.temp===temp);
-  const plannedHere=scenarios.filter(s=>s.occasion===occ&&s.temp===temp);
+  const plannedHere=scenarios.filter(s=>{
+    const sOccs=s.occasions||[s.occasion].filter(Boolean);
+    const sTemps=(s.temps||[s.temp]).filter(t=>t!=null);
+    return sOccs.includes(occ)&&sTemps.includes(temp);
+  });
   if(!loggedHere.length&&!plannedHere.length)return;
 
   const existing=document.getElementById('matrix-popup');
@@ -2041,6 +2050,71 @@ function buildColorHeatmap(){
   table.innerHTML=html;
 }
 
+function buildOccasionHeatmap(){
+  const table=document.getElementById('occasion-heatmap');
+  if(!table)return;
+  const oldLegend=table.nextElementSibling;
+  if(oldLegend&&oldLegend.tagName==='DIV')oldLegend.remove();
+
+  const usedOccs=new Set();
+  const usedTemps=new Set();
+  register.forEach(r=>{
+    (r.occasions||[]).forEach(o=>usedOccs.add(o));
+    (r.temps||[]).forEach(t=>usedTemps.add(t));
+  });
+
+  if(!usedOccs.size){
+    table.innerHTML='<tr><td style="padding:1rem;color:var(--text3);font-size:13px">Ingen data ennå. Legg til anledninger på plagg i registeret.</td></tr>';
+    return;
+  }
+
+  const occs=allOcc().filter(o=>usedOccs.has(o));
+  const temps=TEMP_CATS.map((_,i)=>i).filter(i=>usedTemps.has(i));
+
+  // Build data[temp][occ] = {type: count}
+  const data={};
+  register.forEach(r=>{
+    (r.temps||[]).forEach(t=>{
+      (r.occasions||[]).forEach(occ=>{
+        if(!data[t])data[t]={};
+        if(!data[t][occ])data[t][occ]={};
+        data[t][occ][r.type]=(data[t][occ][r.type]||0)+1;
+      });
+    });
+  });
+
+  const thStyle='padding:5px 8px;border:0.5px solid var(--border);background:var(--bg2);font-size:10px;font-weight:500;white-space:nowrap;text-align:center;';
+  const tdBase='padding:6px 8px;border:0.5px solid var(--border);vertical-align:top;min-width:80px;cursor:pointer;';
+
+  let html='<thead><tr>';
+  html+=`<th style="${thStyle}text-align:left;background:var(--bg3)">Temperatur</th>`;
+  occs.forEach(o=>html+=`<th style="${thStyle}">${o}</th>`);
+  html+='</tr></thead><tbody>';
+
+  temps.forEach(t=>{
+    html+=`<tr><td style="${thStyle}text-align:left;padding:6px 10px;background:var(--bg2)">${TEMP_CATS[t]}</td>`;
+    occs.forEach(occ=>{
+      const cell=(data[t]||{})[occ];
+      if(!cell){
+        html+=`<td style="${tdBase}background:var(--bg)"></td>`;
+        return;
+      }
+      const lines=PLAGG_TYPER.filter(type=>cell[type]).map(type=>{
+        const n=cell[type];
+        return `<div style="font-size:11px;color:var(--text2)">${n} ${type.toLowerCase()}</div>`;
+      }).join('');
+      const total=Object.values(cell).reduce((a,b)=>a+b,0);
+      html+=`<td style="${tdBase}background:var(--bg2)" onclick="showOccasionHeatmapCell(${t},'${occ}')" title="Trykk for detaljer">
+        ${lines}
+        <div style="font-size:10px;color:var(--text3);margin-top:3px;border-top:0.5px solid var(--border);padding-top:2px">= ${total} plagg</div>
+      </td>`;
+    });
+    html+='</tr>';
+  });
+  html+='</tbody>';
+  table.innerHTML=html;
+}
+
 function buildColorHeatmapRegister(){
   const table=document.getElementById('color-heatmap-register');
   if(!table)return;
@@ -2093,110 +2167,42 @@ function buildColorHeatmapRegister(){
   table.innerHTML=html;
 }
 
-function buildOccasionHeatmap(){
-  const table=document.getElementById('occasion-heatmap');
-  if(!table)return;
-
-  // Remove old legend if present
-  const oldLegend=table.nextElementSibling;
-  if(oldLegend&&oldLegend.tagName==='DIV')oldLegend.remove();
-
-  const occs=allOcc();
-  const usedTypes=new Set();
-  const usedOccs=new Set();
-
-  register.forEach(r=>{
-    if((r.occasions||[]).length){
-      usedTypes.add(r.type);
-      (r.occasions||[]).forEach(o=>usedOccs.add(o));
-    }
-  });
-
-  if(!usedTypes.size){
-    table.innerHTML='<tr><td style="padding:1rem;color:var(--text3);font-size:13px">Ingen data ennå. Legg til anledninger på plagg i registeret.</td></tr>';
-    return;
-  }
-
-  const types=PLAGG_TYPER.filter(t=>usedTypes.has(t));
-  const cols=occs.filter(o=>usedOccs.has(o));
-
-  // Build counts: data[type][occ][tempIndex] = count
-  const data={};
-  register.forEach(r=>{
-    (r.occasions||[]).forEach(occ=>{
-      if(!data[r.type])data[r.type]={};
-      if(!data[r.type][occ])data[r.type][occ]={};
-      (r.temps||[]).forEach(t=>{
-        data[r.type][occ][t]=(data[r.type][occ][t]||0)+1;
-      });
+function showOccasionHeatmapCell(temp,occ){
+  const items=register.filter(r=>(r.occasions||[]).includes(occ)&&(r.temps||[]).includes(temp));
+  if(!items.length)return;
+  const existing=document.getElementById('occ-hm-popup');if(existing)existing.remove();
+  const popup=document.createElement('div');
+  popup.id='occ-hm-popup';
+  popup.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:flex;align-items:center;justify-content:center;';
+  const byType={};
+  items.forEach(r=>{if(!byType[r.type])byType[r.type]=[];byType[r.type].push(r);});
+  let content=`<div style="background:var(--bg);border-radius:var(--radius-lg);padding:1.25rem;width:min(480px,92vw);max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div>
+        <div style="font-size:14px;font-weight:500">${occ} · ${TEMP_CATS[temp]}</div>
+        <div style="font-size:12px;color:var(--text2)">${items.length} plagg</div>
+      </div>
+      <button class="btn-ghost" style="padding:4px 10px" onclick="document.getElementById('occ-hm-popup').remove()">×</button>
+    </div>`;
+  PLAGG_TYPER.filter(t=>byType[t]).forEach(type=>{
+    content+=`<div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3);margin:10px 0 4px">${type}</div>`;
+    byType[type].forEach(r=>{
+      const dots=(r.colors||[]).map(c=>catSq(c)).join('');
+      content+=`<div style="padding:5px 0;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:8px">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500">${r.naam}</div>
+          ${r.besk?`<div style="font-size:11px;color:var(--text3)">${r.besk}</div>`:''}
+        </div>
+        ${dots?`<div style="display:flex;gap:3px">${dots}</div>`:''}
+      </div>`;
     });
   });
-
-  // Color scale: cold=blue, warm=red
-  // Temp index 0=Iskaldt → 6=Glovarmt
-  // 0-1: dark→light blue, 2=neutral grey-blue, 3=neutral, 4=light red, 5-6=dark red
-  function tempColor(ti, count){
-    if(!count)return null;
-    const palette=[
-      '#1a4a8a','#3a72b8',  // 0=Iskaldt, 1=Kaldt (dark→light blue)
-      '#7aaad0',             // 2=Kjølig (light blue)
-      '#a0b8c8',             // 3=Mildt (neutral)
-      '#e8a080',             // 4=Lunt (light red)
-      '#d05030','#a82010'    // 5=Varmt, 6=Glovarmt (light→dark red)
-    ];
-    return palette[ti]||'#a0b8c8';
-  }
-
-  const maxCount=Math.max(1,...Object.values(data).flatMap(d=>Object.values(d).flatMap(t=>Object.values(t))));
-
-  const thStyle='padding:5px 8px;border:0.5px solid var(--border);background:var(--bg2);font-size:10px;font-weight:500;white-space:nowrap;text-align:center;';
-  const tdBase='padding:2px 3px;border:0.5px solid var(--border);vertical-align:top;min-width:52px;';
-
-  let html='<thead><tr>';
-  html+=`<th style="${thStyle}text-align:left;background:var(--bg3)"></th>`;
-  cols.forEach(o=>html+=`<th style="${thStyle}">${o}</th>`);
-  html+='</tr></thead><tbody>';
-
-  types.forEach(type=>{
-    html+=`<tr><td style="${thStyle}text-align:left;padding:5px 10px;background:var(--bg2)">${type}</td>`;
-    cols.forEach(occ=>{
-      const cell=(data[type]||{})[occ];
-      if(!cell){
-        html+=`<td style="${tdBase}background:var(--bg)"></td>`;
-        return;
-      }
-      // Render one mini-row per temp category that has data
-      const rows=TEMP_CATS.map((tLabel,ti)=>{
-        const count=cell[ti]||0;
-        const col=tempColor(ti,count);
-        if(!col)return `<div style="height:4px"></div>`; // empty gap
-        const alpha=Math.max(0.35, count/maxCount);
-        const bg=col+Math.round(alpha*255).toString(16).padStart(2,'0');
-        return `<div style="display:flex;align-items:center;justify-content:center;gap:3px;
-          background:${bg};border-radius:2px;padding:1px 3px;margin:1px 0;min-height:14px"
-          title="${tLabel}: ${count} plagg">
-          <span style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.95)">${count}</span>
-        </div>`;
-      }).join('');
-      html+=`<td style="${tdBase}background:var(--bg)"><div style="min-width:44px">${rows}</div></td>`;
-    });
-    html+='</tr>';
-  });
-  html+='</tbody>';
-  table.innerHTML=html;
-
-  // Legend
-  const legend=document.createElement('div');
-  legend.style.cssText='font-size:10px;color:var(--text3);margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center';
-  const legendColors=['#1a4a8a','#3a72b8','#7aaad0','#a0b8c8','#e8a080','#d05030','#a82010'];
-  legend.innerHTML='<span>Temperatur:</span>'+TEMP_CATS.map((t,i)=>
-    `<span style="display:flex;align-items:center;gap:3px">
-      <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${legendColors[i]}"></span>
-      <span>${t}</span>
-    </span>`
-  ).join('');
-  table.insertAdjacentElement('afterend',legend);
+  content+=`</div>`;
+  popup.innerHTML=content;
+  popup.onclick=e=>{if(e.target===popup)popup.remove();};
+  document.body.appendChild(popup);
 }
+
 
 function showColorHeatmapCell(occ,temp){
   const matching=outfits.filter(o=>o.occasion===occ&&o.temp===temp);
