@@ -380,6 +380,11 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
     <div style="overflow-x:auto"><table id="register-matrix" style="width:100%;border-collapse:collapse;font-size:12px"></table></div>
   </div>
   <div class="analyse-block">
+    <div class="analyse-block-title">Anledningsheatmap</div>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:0.8rem">Plaggtype × anledning. Lyst = registrert, mørkt = faktisk brukt.</p>
+    <div style="overflow-x:auto"><table id="occasion-heatmap" style="width:100%;border-collapse:collapse;font-size:12px"></table></div>
+  </div>
+  <div class="analyse-block">
     <div class="analyse-block-title">Fargekart — loggede antrekk</div>
     <p style="font-size:12px;color:var(--text2);margin-bottom:0.8rem">Farger brukt i loggede antrekk, per anledning og temperatur. Trykk en celle for detaljer.</p>
     <div style="overflow-x:auto"><table id="color-heatmap" style="width:100%;border-collapse:collapse;font-size:12px"></table></div>
@@ -469,6 +474,10 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
     <div class="field">
       <label>Temperatur (hak av alle som passer)</label>
       <div id="rm-temps" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px"></div>
+    </div>
+    <div class="field">
+      <label>Anledning (hak av alle som passer)</label>
+      <div id="rm-occasions" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
     </div>
     <div class="field">
       <label>Farge(r)</label>
@@ -564,9 +573,11 @@ function refreshOccSelects(){
   populateSelect('log-occasion',allOcc(),false);
   populateSelect('em-occasion',allOcc(),false);
   populateSelect('filter-occasion',allOcc(),true);
-  // Re-render scenario occasion buttons if modal is open
   if(document.getElementById('scenario-modal')?.classList.contains('open')){
     const cur=getSmOccs();renderSmOccBtns(cur);
+  }
+  if(document.getElementById('reg-modal')?.classList.contains('open')){
+    const cur=getRegOccasions();renderRegOccasions(cur);
   }
 }
 function addCustomOcc(){
@@ -1097,6 +1108,16 @@ function renderRegTempCheckboxes(selected){
 function getRegTemps(){
   return [...document.querySelectorAll('#rm-temps input[type=checkbox]:checked')].map(cb=>parseInt(cb.value));
 }
+function renderRegOccasions(selected){
+  const cont=document.getElementById('rm-occasions');if(!cont)return;
+  cont.innerHTML=allOcc().map(o=>`
+    <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+      <input type="checkbox" value="${o}"${selected.includes(o)?' checked':''}> ${o}
+    </label>`).join('');
+}
+function getRegOccasions(){
+  return [...document.querySelectorAll('#rm-occasions input[type=checkbox]:checked')].map(cb=>cb.value);
+}
 function openAddRegModal(){
   editingRegId=null;
   document.getElementById('reg-modal-title').textContent='Nytt plagg';
@@ -1105,6 +1126,7 @@ function openAddRegModal(){
   document.getElementById('rm-type').value='Overdel';
   document.getElementById('rm-status').value='I skapet';
   renderRegTempCheckboxes([]);
+  renderRegOccasions([]);
   const cont=document.getElementById('rm-color-acc');
   const bar=document.getElementById('rm-sel-colors');
   cont.innerHTML='';bar.innerHTML='';
@@ -1121,6 +1143,7 @@ function openEditRegModal(id){
   document.getElementById('rm-type').value=r.type;
   document.getElementById('rm-status').value=r.status;
   renderRegTempCheckboxes(r.temps||[]);
+  renderRegOccasions(r.occasions||[]);
   const cont=document.getElementById('rm-color-acc');
   const bar=document.getElementById('rm-sel-colors');
   cont.innerHTML='';bar.innerHTML='';
@@ -1135,11 +1158,12 @@ function saveRegItem(){
   const besk=document.getElementById('rm-besk').value.trim();
   const colors=(colorInstances['reg-modal-color']?.sel||[]).map(s=>({n:s.n,h:s.h}));
   const temps=getRegTemps();
+  const occasions=getRegOccasions();
   if(editingRegId){
     const r=register.find(x=>x.id==editingRegId);
-    if(r){r.naam=naam;r.besk=besk;r.type=document.getElementById('rm-type').value;r.status=document.getElementById('rm-status').value;r.colors=colors;r.temps=temps;}
+    if(r){r.naam=naam;r.besk=besk;r.type=document.getElementById('rm-type').value;r.status=document.getElementById('rm-status').value;r.colors=colors;r.temps=temps;r.occasions=occasions;}
   } else {
-    register.push({id:Date.now(),naam,besk,type:document.getElementById('rm-type').value,status:document.getElementById('rm-status').value,colors,temps});
+    register.push({id:Date.now(),naam,besk,type:document.getElementById('rm-type').value,status:document.getElementById('rm-status').value,colors,temps,occasions});
   }
   saveData();closeRegModal();renderRegister();
 }
@@ -1614,6 +1638,7 @@ function renderAnalyse(){
   buildRegisterMatrix();
   buildColorHeatmap();
   buildColorHeatmapRegister();
+  buildOccasionHeatmap();
 }
 
 
@@ -2123,8 +2148,6 @@ function buildColorHeatmap(){
 function buildColorHeatmapRegister(){
   const table=document.getElementById('color-heatmap-register');
   if(!table)return;
-
-  // Rows: PLAGG_TYPER, Cols: TEMP_CATS
   const usedTypes=new Set();
   const usedTemps=new Set();
   register.forEach(r=>{
@@ -2133,15 +2156,12 @@ function buildColorHeatmapRegister(){
       (r.temps||[]).forEach(t=>usedTemps.add(t));
     }
   });
-
   if(!usedTypes.size){
     table.innerHTML='<tr><td style="padding:1rem;color:var(--text3);font-size:13px">Ingen data ennå.</td></tr>';
     return;
   }
-
   const types=PLAGG_TYPER.filter(t=>usedTypes.has(t));
   const temps=TEMP_CATS.map((_,i)=>i).filter(i=>usedTemps.has(i));
-
   const cells={};
   register.forEach(r=>{
     if(!(r.colors||[]).length)return;
@@ -2151,15 +2171,12 @@ function buildColorHeatmapRegister(){
       (r.colors||[]).forEach(c=>{if(!cells[key][c.n])cells[key][c.n]=c;});
     });
   });
-
   const thStyle='padding:6px 8px;border:0.5px solid var(--border);background:var(--bg2);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.03em;white-space:nowrap;';
   const tdBase='padding:4px;border:0.5px solid var(--border);vertical-align:middle;min-width:44px;';
-
   let html='<thead><tr>';
   html+=`<th style="${thStyle}background:var(--bg3)"></th>`;
   temps.forEach(t=>html+=`<th style="${thStyle}">${TEMP_CATS[t].split(' ')[0]}</th>`);
   html+='</tr></thead><tbody>';
-
   types.forEach(type=>{
     html+=`<tr><td style="${thStyle}text-align:left;padding:6px 10px">${type}</td>`;
     temps.forEach(t=>{
@@ -2178,6 +2195,91 @@ function buildColorHeatmapRegister(){
   });
   html+='</tbody>';
   table.innerHTML=html;
+}
+
+function buildOccasionHeatmap(){
+  const table=document.getElementById('occasion-heatmap');
+  if(!table)return;
+
+  const occs=allOcc();
+  const usedTypes=new Set();
+  const usedOccs=new Set();
+
+  // Collect from register
+  register.forEach(r=>{
+    if((r.occasions||[]).length){
+      usedTypes.add(r.type);
+      (r.occasions||[]).forEach(o=>usedOccs.add(o));
+    }
+  });
+  // Collect from outfits
+  outfits.forEach(o=>{
+    if(o.occasion)(o.plagg||[]).forEach(p=>{usedTypes.add(p.type);usedOccs.add(o.occasion);});
+  });
+
+  if(!usedTypes.size){
+    table.innerHTML='<tr><td style="padding:1rem;color:var(--text3);font-size:13px">Ingen data ennå. Legg til anledninger på plagg i registeret.</td></tr>';
+    return;
+  }
+
+  const types=PLAGG_TYPER.filter(t=>usedTypes.has(t));
+  const cols=occs.filter(o=>usedOccs.has(o));
+
+  // Build counts: registered[type][occ] and logged[type][occ]
+  const reg={},log={};
+  register.forEach(r=>{
+    (r.occasions||[]).forEach(o=>{
+      if(!reg[r.type])reg[r.type]={};
+      reg[r.type][o]=(reg[r.type][o]||0)+1;
+    });
+  });
+  outfits.forEach(o=>{
+    if(!o.occasion)return;
+    (o.plagg||[]).forEach(p=>{
+      if(!log[p.type])log[p.type]={};
+      log[p.type][o.occasion]=(log[p.type][o.occasion]||0)+1;
+    });
+  });
+
+  const maxReg=Math.max(1,...Object.values(reg).flatMap(v=>Object.values(v)));
+  const maxLog=Math.max(1,...Object.values(log).flatMap(v=>Object.values(v)));
+
+  const thStyle='padding:5px 8px;border:0.5px solid var(--border);background:var(--bg2);font-size:10px;font-weight:500;white-space:nowrap;';
+  const tdBase='padding:4px 6px;border:0.5px solid var(--border);text-align:center;font-size:11px;min-width:48px;';
+
+  let html='<thead><tr>';
+  html+=`<th style="${thStyle}background:var(--bg3)"></th>`;
+  cols.forEach(o=>html+=`<th style="${thStyle}">${o}</th>`);
+  html+='</tr></thead><tbody>';
+
+  types.forEach(type=>{
+    html+=`<tr><td style="${thStyle}text-align:left;padding:5px 10px">${type}</td>`;
+    cols.forEach(occ=>{
+      const r=(reg[type]||{})[occ]||0;
+      const l=(log[type]||{})[occ]||0;
+      if(!r&&!l){
+        html+=`<td style="${tdBase}background:var(--bg)"></td>`;
+      } else {
+        const regAlpha=r?Math.max(0.12,r/maxReg*0.4):0;
+        const logAlpha=l?Math.max(0.25,l/maxLog*0.85):0;
+        // Show stacked: registered as light bg, logged as darker number
+        const bg=r?`rgba(100,160,100,${regAlpha})`:'var(--bg)';
+        const logColor=l?`rgba(30,100,30,${logAlpha})`:'transparent';
+        html+=`<td style="${tdBase}background:${bg}" title="${type} / ${occ}: ${r} registrert, ${l} ganger brukt">
+          ${r?`<div style="font-size:9px;color:rgba(0,0,0,0.4)">${r}r</div>`:''}
+          ${l?`<div style="font-size:11px;font-weight:600;color:rgba(20,80,20,0.9)">${l}b</div>`:''}
+        </td>`;
+      }
+    });
+    html+='</tr>';
+  });
+  html+='</tbody>';
+  table.innerHTML=html;
+  // Legend
+  const legend=document.createElement('div');
+  legend.style.cssText='font-size:11px;color:var(--text3);margin-top:6px;display:flex;gap:12px';
+  legend.innerHTML='<span><span style="color:rgba(0,0,0,0.4)">r</span> = registrert</span><span><span style="font-weight:600;color:rgba(20,80,20,0.9)">b</span> = brukt</span>';
+  table.insertAdjacentElement('afterend',legend);
 }
 
 function showColorHeatmapCell(occ,temp){
