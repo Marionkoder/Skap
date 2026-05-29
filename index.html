@@ -375,13 +375,8 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
     <div style="overflow-x:auto"><table id="wardrobe-matrix" style="width:100%;border-collapse:collapse;font-size:12px"></table></div>
   </div>
   <div class="analyse-block">
-    <div class="analyse-block-title">Registerheatmap</div>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:0.8rem">Plaggtype × temperatur. Viser hva du faktisk eier.</p>
-    <div style="overflow-x:auto"><table id="register-matrix" style="width:100%;border-collapse:collapse;font-size:12px"></table></div>
-  </div>
-  <div class="analyse-block">
     <div class="analyse-block-title">Anledningsheatmap</div>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:0.8rem">Plaggtype × anledning. Lyst = registrert, mørkt = faktisk brukt.</p>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:0.8rem">Plaggtype × anledning. Hver celle viser antall registrerte plagg per temperaturkategori — blått for kaldt, rødt for varmt.</p>
     <div style="overflow-x:auto"><table id="occasion-heatmap" style="width:100%;border-collapse:collapse;font-size:12px"></table></div>
   </div>
   <div class="analyse-block">
@@ -499,7 +494,7 @@ const FARGE_KAT={
   'Rosa':[{n:'Gammelrosa',h:'#D47D7F'},{n:'Lys lakserosa',h:'#EAA898'}],
   'Blå':[{n:'Nattblå',h:'#071932'},{n:'Varm blå',h:'#4A7FA0'},{n:'Frisk blå',h:'#5A88B8'},{n:'Himmelblå',h:'#2A90D0'},{n:'Bondeblå',h:'#4A7888'},{n:'Lys bondeblå',h:'#80B0B8'}],
   'Grønn':[{n:'Pistasjgrønn',h:'#C8D9A8'},{n:'Gressgrønn',h:'#61A85A'},{n:'Sjøgrønn',h:'#167065'},{n:'Mintgrønn',h:'#7DD4B0'}],
-  'Brun':[{n:'Lærbrun',h:'#C57E4B'}],
+  'Brun':[{n:'Mørkebrun',h:'#4d2600'},{n:'Lærbrun',h:'#C57E4B'}],
   'Metall':[{n:'Gull',h:'#C5A028',metal:true},{n:'Sølv',h:'#DFDFDF',metal:true}],
   'Grå og svart':[{n:'Mellomgrå',h:'#808080'},{n:'Grå',h:'#A9A9A9'},{n:'Svart',h:'#000000'}],
 };
@@ -1635,7 +1630,6 @@ function renderAnalyse(){
 
   // — REGISTER / MATRIX BLOCK —
   buildWardrobeMatrix();
-  buildRegisterMatrix();
   buildColorHeatmap();
   buildColorHeatmapRegister();
   buildOccasionHeatmap();
@@ -1982,104 +1976,6 @@ function fillFromScenario(scenarioId){
 }
 
 
-function buildRegisterMatrix(){
-  const table=document.getElementById('register-matrix');
-  if(!table)return;
-
-  // Find used types and temps from register
-  const usedTypes=new Set();
-  const usedTemps=new Set();
-  register.forEach(r=>{
-    if(r.type)usedTypes.add(r.type);
-    (r.temps||[]).forEach(t=>usedTemps.add(t));
-  });
-
-  if(!usedTypes.size){
-    table.innerHTML='<tr><td style="padding:1rem;color:var(--text3);font-size:13px">Ingen plagg med temperatur registrert ennå.</td></tr>';
-    return;
-  }
-
-  const types=PLAGG_TYPER.filter(t=>usedTypes.has(t));
-  const temps=TEMP_CATS.map((t,i)=>i).filter(i=>usedTemps.has(i));
-
-  // Build cell data: key = type+'_'+temp -> count
-  const cells={};
-  const cellItems={};
-  register.forEach(r=>{
-    if(!r.type)return;
-    (r.temps||[]).forEach(t=>{
-      const key=r.type+'_'+t;
-      cells[key]=(cells[key]||0)+1;
-      if(!cellItems[key])cellItems[key]=[];
-      cellItems[key].push(r);
-    });
-  });
-
-  const maxCount=Math.max(...Object.values(cells),1);
-  const thStyle='padding:6px 8px;border:0.5px solid var(--border);background:var(--bg2);font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.03em;white-space:nowrap;';
-  const tdBase='padding:0;border:0.5px solid var(--border);text-align:center;vertical-align:middle;cursor:pointer;min-width:44px;height:44px;';
-
-  let html='<thead><tr>';
-  html+=`<th style="${thStyle}background:var(--bg3)"></th>`;
-  temps.forEach(t=>html+=`<th style="${thStyle}">${TEMP_CATS[t].split(' ')[0]}</th>`);
-  html+='</tr></thead><tbody>';
-
-  types.forEach(type=>{
-    html+=`<tr><td style="${thStyle}text-align:left;padding:6px 10px">${type}</td>`;
-    temps.forEach(t=>{
-      const key=type+'_'+t;
-      const count=cells[key]||0;
-      if(!count){
-        html+=`<td style="${tdBase}background:var(--bg)"></td>`;
-      } else {
-        const intensity=(count/maxCount)*0.75;
-        const bg=`rgba(60,139,81,${intensity})`;
-        const textColor=intensity>0.5?'#fff':'var(--text)';
-        html+=`<td style="${tdBase}background:${bg}" onclick="showRegMatrixCell('${type}',${t})" title="${type} · ${TEMP_CATS[t]}: ${count} plagg">
-          <span style="font-size:13px;font-weight:500;color:${textColor}">${count}</span>
-        </td>`;
-      }
-    });
-    html+='</tr>';
-  });
-  html+='</tbody>';
-  table.innerHTML=html;
-}
-
-function showRegMatrixCell(type,temp){
-  const items=register.filter(r=>r.type===type&&(r.temps||[]).includes(temp));
-  if(!items.length)return;
-  const existing=document.getElementById('reg-matrix-popup');
-  if(existing)existing.remove();
-  const popup=document.createElement('div');
-  popup.id='reg-matrix-popup';
-  popup.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;display:flex;align-items:center;justify-content:center;';
-  let content=`<div style="background:var(--bg);border-radius:var(--radius-lg);padding:1.25rem;width:min(480px,92vw);max-height:80vh;overflow-y:auto">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-      <div>
-        <div style="font-size:14px;font-weight:500">${type}</div>
-        <div style="font-size:12px;color:var(--text2)">${TEMP_CATS[temp]} · ${items.length} plagg</div>
-      </div>
-      <button class="btn-ghost" style="padding:4px 10px" onclick="document.getElementById('reg-matrix-popup').remove()">×</button>
-    </div>`;
-  items.forEach(r=>{
-    const dots=(r.colors||[]).map(c=>catSq(c)).join('');
-    const badge=r.status==='På lager'?`<span class="reg-status-badge lagret">På lager</span>`:'';
-    content+=`<div style="padding:7px 0;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:8px">
-      <div style="flex:1">
-        <div style="font-size:13px;font-weight:500">${r.naam}</div>
-        ${r.besk?`<div style="font-size:11px;color:var(--text3)">${r.besk}</div>`:''}
-      </div>
-      ${dots?`<div style="display:flex;gap:3px">${dots}</div>`:''}
-      ${badge}
-    </div>`;
-  });
-  content+=`</div>`;
-  popup.innerHTML=content;
-  popup.onclick=e=>{if(e.target===popup)popup.remove();};
-  document.body.appendChild(popup);
-}
-
 
 function buildColorHeatmap(){
   const table=document.getElementById('color-heatmap');
@@ -2201,20 +2097,19 @@ function buildOccasionHeatmap(){
   const table=document.getElementById('occasion-heatmap');
   if(!table)return;
 
+  // Remove old legend if present
+  const oldLegend=table.nextElementSibling;
+  if(oldLegend&&oldLegend.tagName==='DIV')oldLegend.remove();
+
   const occs=allOcc();
   const usedTypes=new Set();
   const usedOccs=new Set();
 
-  // Collect from register
   register.forEach(r=>{
     if((r.occasions||[]).length){
       usedTypes.add(r.type);
       (r.occasions||[]).forEach(o=>usedOccs.add(o));
     }
-  });
-  // Collect from outfits
-  outfits.forEach(o=>{
-    if(o.occasion)(o.plagg||[]).forEach(p=>{usedTypes.add(p.type);usedOccs.add(o.occasion);});
   });
 
   if(!usedTypes.size){
@@ -2225,60 +2120,81 @@ function buildOccasionHeatmap(){
   const types=PLAGG_TYPER.filter(t=>usedTypes.has(t));
   const cols=occs.filter(o=>usedOccs.has(o));
 
-  // Build counts: registered[type][occ] and logged[type][occ]
-  const reg={},log={};
+  // Build counts: data[type][occ][tempIndex] = count
+  const data={};
   register.forEach(r=>{
-    (r.occasions||[]).forEach(o=>{
-      if(!reg[r.type])reg[r.type]={};
-      reg[r.type][o]=(reg[r.type][o]||0)+1;
-    });
-  });
-  outfits.forEach(o=>{
-    if(!o.occasion)return;
-    (o.plagg||[]).forEach(p=>{
-      if(!log[p.type])log[p.type]={};
-      log[p.type][o.occasion]=(log[p.type][o.occasion]||0)+1;
+    (r.occasions||[]).forEach(occ=>{
+      if(!data[r.type])data[r.type]={};
+      if(!data[r.type][occ])data[r.type][occ]={};
+      (r.temps||[]).forEach(t=>{
+        data[r.type][occ][t]=(data[r.type][occ][t]||0)+1;
+      });
     });
   });
 
-  const maxReg=Math.max(1,...Object.values(reg).flatMap(v=>Object.values(v)));
-  const maxLog=Math.max(1,...Object.values(log).flatMap(v=>Object.values(v)));
+  // Color scale: cold=blue, warm=red
+  // Temp index 0=Iskaldt → 6=Glovarmt
+  // 0-1: dark→light blue, 2=neutral grey-blue, 3=neutral, 4=light red, 5-6=dark red
+  function tempColor(ti, count){
+    if(!count)return null;
+    const palette=[
+      '#1a4a8a','#3a72b8',  // 0=Iskaldt, 1=Kaldt (dark→light blue)
+      '#7aaad0',             // 2=Kjølig (light blue)
+      '#a0b8c8',             // 3=Mildt (neutral)
+      '#e8a080',             // 4=Lunt (light red)
+      '#d05030','#a82010'    // 5=Varmt, 6=Glovarmt (light→dark red)
+    ];
+    return palette[ti]||'#a0b8c8';
+  }
 
-  const thStyle='padding:5px 8px;border:0.5px solid var(--border);background:var(--bg2);font-size:10px;font-weight:500;white-space:nowrap;';
-  const tdBase='padding:4px 6px;border:0.5px solid var(--border);text-align:center;font-size:11px;min-width:48px;';
+  const maxCount=Math.max(1,...Object.values(data).flatMap(d=>Object.values(d).flatMap(t=>Object.values(t))));
+
+  const thStyle='padding:5px 8px;border:0.5px solid var(--border);background:var(--bg2);font-size:10px;font-weight:500;white-space:nowrap;text-align:center;';
+  const tdBase='padding:2px 3px;border:0.5px solid var(--border);vertical-align:top;min-width:52px;';
 
   let html='<thead><tr>';
-  html+=`<th style="${thStyle}background:var(--bg3)"></th>`;
+  html+=`<th style="${thStyle}text-align:left;background:var(--bg3)"></th>`;
   cols.forEach(o=>html+=`<th style="${thStyle}">${o}</th>`);
   html+='</tr></thead><tbody>';
 
   types.forEach(type=>{
-    html+=`<tr><td style="${thStyle}text-align:left;padding:5px 10px">${type}</td>`;
+    html+=`<tr><td style="${thStyle}text-align:left;padding:5px 10px;background:var(--bg2)">${type}</td>`;
     cols.forEach(occ=>{
-      const r=(reg[type]||{})[occ]||0;
-      const l=(log[type]||{})[occ]||0;
-      if(!r&&!l){
+      const cell=(data[type]||{})[occ];
+      if(!cell){
         html+=`<td style="${tdBase}background:var(--bg)"></td>`;
-      } else {
-        const regAlpha=r?Math.max(0.12,r/maxReg*0.4):0;
-        const logAlpha=l?Math.max(0.25,l/maxLog*0.85):0;
-        // Show stacked: registered as light bg, logged as darker number
-        const bg=r?`rgba(100,160,100,${regAlpha})`:'var(--bg)';
-        const logColor=l?`rgba(30,100,30,${logAlpha})`:'transparent';
-        html+=`<td style="${tdBase}background:${bg}" title="${type} / ${occ}: ${r} registrert, ${l} ganger brukt">
-          ${r?`<div style="font-size:9px;color:rgba(0,0,0,0.4)">${r}r</div>`:''}
-          ${l?`<div style="font-size:11px;font-weight:600;color:rgba(20,80,20,0.9)">${l}b</div>`:''}
-        </td>`;
+        return;
       }
+      // Render one mini-row per temp category that has data
+      const rows=TEMP_CATS.map((tLabel,ti)=>{
+        const count=cell[ti]||0;
+        const col=tempColor(ti,count);
+        if(!col)return `<div style="height:4px"></div>`; // empty gap
+        const alpha=Math.max(0.35, count/maxCount);
+        const bg=col+Math.round(alpha*255).toString(16).padStart(2,'0');
+        return `<div style="display:flex;align-items:center;justify-content:center;gap:3px;
+          background:${bg};border-radius:2px;padding:1px 3px;margin:1px 0;min-height:14px"
+          title="${tLabel}: ${count} plagg">
+          <span style="font-size:9px;font-weight:600;color:rgba(255,255,255,0.95)">${count}</span>
+        </div>`;
+      }).join('');
+      html+=`<td style="${tdBase}background:var(--bg)"><div style="min-width:44px">${rows}</div></td>`;
     });
     html+='</tr>';
   });
   html+='</tbody>';
   table.innerHTML=html;
+
   // Legend
   const legend=document.createElement('div');
-  legend.style.cssText='font-size:11px;color:var(--text3);margin-top:6px;display:flex;gap:12px';
-  legend.innerHTML='<span><span style="color:rgba(0,0,0,0.4)">r</span> = registrert</span><span><span style="font-weight:600;color:rgba(20,80,20,0.9)">b</span> = brukt</span>';
+  legend.style.cssText='font-size:10px;color:var(--text3);margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center';
+  const legendColors=['#1a4a8a','#3a72b8','#7aaad0','#a0b8c8','#e8a080','#d05030','#a82010'];
+  legend.innerHTML='<span>Temperatur:</span>'+TEMP_CATS.map((t,i)=>
+    `<span style="display:flex;align-items:center;gap:3px">
+      <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${legendColors[i]}"></span>
+      <span>${t}</span>
+    </span>`
+  ).join('');
   table.insertAdjacentElement('afterend',legend);
 }
 
