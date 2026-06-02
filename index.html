@@ -517,7 +517,147 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
 </div>
 
 <script>
-// ── FARGE DATA ────────────────────────────────────────────────────────────────
+// ── ÅRSTIDSTYPER ─────────────────────────────────────────────────────────────
+const AARSTYPER={
+  // ── VÅR ──
+  'Ekte vår':{
+    sesong:'vår', desc:'Varm, klar og lys. De klareste og mest levende vårfargene kler deg best.',
+    undertone:'varm', clarity:'klar', depth:'lys-medium',
+    lMin:40,lMax:75, sMin:40,sMax:100,
+    goodHues:[[0,60],[80,170]], avoidHues:[[200,280]],
+    avoidDark:true, avoidMuted:true,
+    tips:'Unngå kalde, mudrete eller mørke farger. Velg klare, varme og lyse nyanser.'
+  },
+  'Lys vår':{
+    sesong:'vår', desc:'Den lyseste av vår-typene. Delikate, lyse og varme farger.',
+    undertone:'varm', clarity:'klar', depth:'lys',
+    lMin:55,lMax:85, sMin:25,sMax:75,
+    goodHues:[[0,60],[80,160]], avoidHues:[[200,280]],
+    avoidDark:true, avoidMuted:false,
+    tips:'Hold deg til lyse, varme farger. Mørke farger kan virke tunge på deg.'
+  },
+  'Varm vår':{
+    sesong:'vår', desc:'Den varmeste av vår-typene. Gylne, oransje og jordnære varme farger.',
+    undertone:'varm', clarity:'medium', depth:'medium',
+    lMin:35,lMax:70, sMin:35,sMax:90,
+    goodHues:[[0,70],[310,360]], avoidHues:[[180,270]],
+    avoidDark:false, avoidMuted:false,
+    tips:'Varme, gylne og jordnære farger er din styrke. Unngå kalde blå og lilla.'
+  },
+  'Klar vår':{
+    sesong:'vår', desc:'Klar og levende. Sterke, klare farger med varm undertone.',
+    undertone:'varm', clarity:'klar', depth:'medium',
+    lMin:35,lMax:70, sMin:55,sMax:100,
+    goodHues:[[0,50],[80,150],[300,360]], avoidHues:[[190,270]],
+    avoidDark:false, avoidMuted:true,
+    tips:'Klare, mettede farger er din styrke. Unngå mudrete og duse nyanser.'
+  },
+  // ── SOMMER ──
+  'Ekte sommer':{
+    sesong:'sommer', desc:'Kjølig, myk og rosentonet. Duse, kjølige farger i mellomregisteret.',
+    undertone:'kald', clarity:'myk', depth:'lys-medium',
+    lMin:40,lMax:75, sMin:15,sMax:55,
+    goodHues:[[150,270],[300,340]], avoidHues:[[0,30],[40,80]],
+    avoidDark:false, avoidMuted:false,
+    tips:'Duse, kjølige rosenfarger og blålilla kler deg. Unngå varme og klare farger.'
+  },
+  'Lys sommer':{
+    sesong:'sommer', desc:'Den lyseste sommeren. Delikate, kjølige og lyse pasteller.',
+    undertone:'kald', clarity:'myk', depth:'lys',
+    lMin:55,lMax:88, sMin:10,sMax:45,
+    goodHues:[[150,280],[300,345]], avoidHues:[[0,40]],
+    avoidDark:true, avoidMuted:false,
+    tips:'Lette, lyse og kjølige farger. Mørke eller varme farger kan virke harde.'
+  },
+  'Kjølig sommer':{
+    sesong:'sommer', desc:'Den kjøligste sommeren. Tydelig blålilla undertone i alle farger.',
+    undertone:'kald', clarity:'medium', depth:'medium',
+    lMin:35,lMax:70, sMin:20,sMax:65,
+    goodHues:[[160,280],[300,345]], avoidHues:[[0,50]],
+    avoidDark:false, avoidMuted:false,
+    tips:'Kjølige, blålilla og rosenfarger. Unngå alt med gul eller oransje undertone.'
+  },
+  'Myk sommer':{
+    sesong:'sommer', desc:'Den mykeste sommeren. Duse og harmoniske kjølige farger.',
+    undertone:'kald', clarity:'myk', depth:'medium',
+    lMin:35,lMax:72, sMin:10,sMax:45,
+    goodHues:[[150,290],[300,350]], avoidHues:[[0,40]],
+    avoidDark:false, avoidMuted:false,
+    tips:'Myke, duse og kjølige farger. Unngå sterke kontraster og varme nyanser.'
+  },
+  // ── HØST ──
+  'Ekte høst':{
+    sesong:'høst', desc:'Varm, dyp og jordnær. Rike, varme og mettede høstfarger.',
+    undertone:'varm', clarity:'myk', depth:'medium-mørk',
+    lMin:25,lMax:60, sMin:30,sMax:80,
+    goodHues:[[0,60],[300,360]], avoidHues:[[180,270]],
+    avoidDark:false, avoidMuted:false,
+    tips:'Rike jordfarger, rust, okker og oliven er din styrke. Unngå kalde blå og rosa.'
+  },
+  'Varm høst':{
+    sesong:'høst', desc:'Den varmeste høsten. Gylne, oransje og jordnære varme farger.',
+    undertone:'varm', clarity:'medium', depth:'medium',
+    lMin:28,lMax:62, sMin:35,sMax:85,
+    goodHues:[[0,65],[300,360]], avoidHues:[[170,270]],
+    avoidDark:false, avoidMuted:false,
+    tips:'Varme gullfarger og jordtoner. Unngå kjølige og duse farger.'
+  },
+  'Mørk høst':{
+    sesong:'høst', desc:'Den mørkeste høsten. Dype, rike og mørke varme farger.',
+    undertone:'varm', clarity:'medium', depth:'mørk',
+    lMin:15,lMax:50, sMin:30,sMax:75,
+    goodHues:[[0,60],[300,360]], avoidHues:[[170,270]],
+    avoidDark:false, avoidMuted:false,
+    tips:'Dype, mørke og rike farger. Lyse pasteller kan virke flaterende lite på deg.'
+  },
+  'Myk høst':{
+    sesong:'høst', desc:'Den mykeste høsten. Duse og jordnære høstfarger i mellomregisteret.',
+    undertone:'varm', clarity:'myk', depth:'medium',
+    lMin:30,lMax:65, sMin:15,sMax:50,
+    goodHues:[[0,70],[300,360]], avoidHues:[[170,270]],
+    avoidDark:false, avoidMuted:false,
+    tips:'Myke, duse og varme farger. Unngå sterke kontraster og kalde nyanser.'
+  },
+  // ── VINTER ──
+  'Ekte vinter':{
+    sesong:'vinter', desc:'Kjølig, klar og kontrastfull. Rene, sterke og kjølige vinterfarger.',
+    undertone:'kald', clarity:'klar', depth:'mørk-lys',
+    lMin:15,lMax:85, sMin:50,sMax:100,
+    goodHues:[[150,280],[300,350]], avoidHues:[[30,80]],
+    avoidDark:false, avoidMuted:true,
+    tips:'Sterke kontraster og rene kjølige farger. Unngå mudrete og varme nyanser.'
+  },
+  'Klar vinter':{
+    sesong:'vinter', desc:'Den klareste vinteren. Levende og klare farger med kjølig undertone.',
+    undertone:'kald', clarity:'klar', depth:'medium',
+    lMin:25,lMax:75, sMin:60,sMax:100,
+    goodHues:[[150,280],[300,355]], avoidHues:[[30,80]],
+    avoidDark:false, avoidMuted:true,
+    tips:'Klare, mettede og kjølige farger. Duse og varme farger mister seg på deg.'
+  },
+  'Kjølig vinter':{
+    sesong:'vinter', desc:'Den kjøligste vinteren. Tydelig blålilla undertone i alle farger.',
+    undertone:'kald', clarity:'medium', depth:'mørk',
+    lMin:15,lMax:65, sMin:30,sMax:85,
+    goodHues:[[160,290],[300,355]], avoidHues:[[0,50]],
+    avoidDark:false, avoidMuted:false,
+    tips:'Kjølige, blå og lilla farger. Jo kaldere undertone, jo bedre.'
+  },
+  'Mørk vinter':{
+    sesong:'vinter', desc:'Den mørkeste vinteren. Dype, mørke og kjølige farger.',
+    undertone:'kald', clarity:'medium', depth:'mørk',
+    lMin:10,lMax:55, sMin:35,sMax:90,
+    goodHues:[[150,290],[300,360]], avoidHues:[[30,80]],
+    avoidDark:false, avoidMuted:false,
+    tips:'Mørke og dype farger med kjølig undertone. Pasteller og lyse farger kan virke usynlige på deg.'
+  },
+};
+
+let aarstype=null;
+try{aarstype=localStorage.getItem('skap_aarstype')||null;}catch(e){}
+function saveAarstype(v){aarstype=v;try{localStorage.setItem('skap_aarstype',v);}catch(e){}}
+
+
 const FARGE_KAT={
   'Hvit og beige':[{n:'Hvit',h:'#FFFFFF'},{n:'Kremhvit',h:'#FAF6EF'},{n:'Lys beige',h:'#F0E8D9'}],
   'Rød':[{n:'Jordbærrød',h:'#EA1F41'},{n:'Tomatrød',h:'#E04535'},{n:'Rustrød',h:'#9E2415'}],
@@ -1871,44 +2011,68 @@ function hslToHex(h,s,l){
 }
 
 function getColorSuggestions(loggedColors){
-  // All hex values already in palette
   const paletteHexes=new Set(Object.values(FARGE_KAT).flat().map(c=>c.h?.toUpperCase()));
+  const type=aarstype?AARSTYPER[aarstype]:null;
   const suggestions=[];
 
-  // Get unique non-neutral logged colors, pick up to 3 most frequent
   const freq={};
   loggedColors.forEach(c=>{if(c.h&&!isNeutral(c.h))freq[c.h]=(freq[c.h]||{h:c.h,n:c.n,count:0}),freq[c.h].count++;});
   const top=Object.values(freq).sort((a,b)=>b.count-a.count).slice(0,3);
 
+  function hueInRanges(h,ranges){return ranges.some(([a,b])=>h>=a&&h<=b);}
+  function isGoodForType(h){
+    if(!type)return true;
+    const [hue,sat,lig]=hexToHsl(h);
+    if(lig<type.lMin||lig>type.lMax)return false;
+    if(sat<type.sMin||sat>type.sMax)return false;
+    if(type.goodHues&&!hueInRanges(hue,type.goodHues))return false;
+    if(type.avoidHues&&hueInRanges(hue,type.avoidHues))return false;
+    return true;
+  }
+  function adjustForType(h,s,l){
+    if(!type)return[h,s,l];
+    // Nudge lightness and saturation toward type's sweet spot
+    l=Math.max(type.lMin,Math.min(type.lMax,(l+type.lMin/2+type.lMax/2)/2));
+    s=Math.max(type.sMin,Math.min(type.sMax,(s+type.sMin/2+type.sMax/2)/2));
+    // Nudge hue toward nearest good hue range
+    if(type.goodHues){
+      const nearest=type.goodHues.reduce((best,range)=>{
+        const mid=(range[0]+range[1])/2;
+        const dist=Math.min(Math.abs(h-mid),360-Math.abs(h-mid));
+        return dist<best.dist?{mid,dist}:best;
+      },{dist:999,mid:h});
+      if(nearest.dist>30)h=h+(nearest.mid-h)*0.3;
+    }
+    return[h,s,l];
+  }
+  function typeReason(rel,basis){
+    if(!type)return`${rel} til din ${basis}.`;
+    return`${rel} til din ${basis} — tilpasset din ${aarstype}-profil (${type.desc})`;
+  }
+
   top.forEach(src=>{
     const [h,s,l]=hexToHsl(src.h);
 
-    // Komplementær (H+180)
-    const comp=hslToHex(h+180,Math.min(s*0.9,70),Math.max(Math.min(l,60),35));
-    if(!paletteHexes.has(comp.toUpperCase())&&!isNeutral(comp)){
-      suggestions.push({h:comp,reason:`Komplementærfargen til din ${src.n} — de er motsatte på fargehjulet og skaper sterk, levende kontrast.`,basis:src.n});
-    }
+    const pairs=[
+      {angle:180,label:'Komplementærfargen',desc:'Disse er motsatte på fargehjulet og skaper sterk, levende kontrast.'},
+      {angle:30, label:'En analog farge',desc:'Nabofarge på fargehjulet — harmonisk og sofistikert.'},
+      {angle:-30,label:'En analog farge',desc:'Nabofarge på den andre siden — like harmonisk, annen karakter.'},
+      {angle:150,label:'En split-komplementærfarge',desc:'Mykere enn ren komplementær, men fortsatt spennende kontrast.'},
+      {angle:120,label:'En triadisk farge',desc:'Del av en trefarge-harmoni — balansert og levende.'},
+    ];
 
-    // Analog (H+30)
-    const anal1=hslToHex(h+30,Math.min(s*1.05,80),Math.max(Math.min(l,65),30));
-    if(!paletteHexes.has(anal1.toUpperCase())&&!isNeutral(anal1)){
-      suggestions.push({h:anal1,reason:`En analog farge til din ${src.n} — den ligger nabo på fargehjulet og gir et harmonisk, sofistikert uttrykk.`,basis:src.n});
-    }
-
-    // Analog (H-30)
-    const anal2=hslToHex(h-30,Math.min(s*1.05,80),Math.max(Math.min(l,65),30));
-    if(!paletteHexes.has(anal2.toUpperCase())&&!isNeutral(anal2)){
-      suggestions.push({h:anal2,reason:`En analog farge til din ${src.n} — nabofarge på den andre siden av fargehjulet, like harmonisk men med en annen karakter.`,basis:src.n});
-    }
-
-    // Split-komplementær (H+150)
-    const split=hslToHex(h+150,Math.min(s*0.85,70),Math.max(Math.min(l,60),35));
-    if(!paletteHexes.has(split.toUpperCase())&&!isNeutral(split)){
-      suggestions.push({h:split,reason:`En split-komplementærfarge til din ${src.n} — litt mykere enn ren komplementær, men fortsatt spennende kontrast.`,basis:src.n});
-    }
+    pairs.forEach(({angle,label,desc})=>{
+      let [nh,ns,nl]=adjustForType(h+angle,s,l);
+      const hex=hslToHex(nh,ns,nl);
+      if(paletteHexes.has(hex.toUpperCase())||isNeutral(hex))return;
+      if(!isGoodForType(hex))return;
+      if(!suggestions.find(x=>x.h===hex)){
+        suggestions.push({h:hex,reason:`${label} til din ${src.n}. ${desc}${type?' Passer din '+aarstype+'-profil: '+type.tips:''}`,basis:src.n});
+      }
+    });
   });
 
-  // Deduplicate by approximate hue proximity (>15° apart)
+  // Deduplicate by hue proximity
   const kept=[];
   suggestions.forEach(s=>{
     const [sh]=hexToHsl(s.h);
@@ -1978,7 +2142,28 @@ function renderInspirasjon(){
     nøytral:'Du bruker en god blanding av varme og kalde farger.'
   }[undertone]||'';
 
-  const suggestions=getColorSuggestions(allColors);
+  // Årstidstype-velger
+  const sesonger=['vår','sommer','høst','vinter'];
+  const typesBySesong={};
+  Object.entries(AARSTYPER).forEach(([k,v])=>{if(!typesBySesong[v.sesong])typesBySesong[v.sesong]=[];typesBySesong[v.sesong].push(k);});
+
+  const typePickerHtml=`
+    <div class="analyse-block" style="margin-bottom:1.2rem">
+      <div class="analyse-block-title">Din årstidstype</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Velg din fargesystemtype for mer presise fargeforslag.</p>
+      ${sesonger.map(s=>`
+        <div style="margin-bottom:10px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3);margin-bottom:5px">${s.charAt(0).toUpperCase()+s.slice(1)}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${(typesBySesong[s]||[]).map(t=>`
+              <button class="reg-filter-btn${aarstype===t?' active':''}" style="font-size:11px;padding:4px 10px"
+                onclick="saveAarstype('${t}');renderInspirasjon()">${t}</button>`).join('')}
+          </div>
+        </div>`).join('')}
+      ${aarstype?`<div style="margin-top:8px;font-size:12px;color:var(--text2);padding:10px;background:var(--bg2);border-radius:var(--radius)">${AARSTYPER[aarstype].desc}<br><span style="font-size:11px;color:var(--text3);margin-top:4px;display:block">${AARSTYPER[aarstype].tips}</span></div>`:''}
+    </div>`;
+
+
 
   let suggestHtml='';
   if(suggestions.length){
@@ -2006,6 +2191,7 @@ function renderInspirasjon(){
   }
 
   cont.innerHTML=`
+    ${typePickerHtml}
     <div class="analyse-block" style="margin-bottom:1.2rem">
       <div class="analyse-block-title">Din fargeprofil</div>
       <p style="font-size:14px;margin-bottom:0.8rem">Du bruker primært <strong>${undertoneLabel}</strong> farger. ${undertoneDesc}</p>
