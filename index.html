@@ -2163,6 +2163,7 @@ function renderInspirasjon(){
       ${aarstype?`<div style="margin-top:8px;font-size:12px;color:var(--text2);padding:10px;background:var(--bg2);border-radius:var(--radius)">${AARSTYPER[aarstype].desc}<br><span style="font-size:11px;color:var(--text3);margin-top:4px;display:block">${AARSTYPER[aarstype].tips}</span></div>`:''}
     </div>`;
 
+  const suggestions=getColorSuggestions(allColors);
 
 
   let suggestHtml='';
