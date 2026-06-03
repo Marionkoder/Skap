@@ -2108,6 +2108,60 @@ function getBestCombos(){
   return combos;
 }
 
+function buildPaletteAssessment(){
+  const type=AARSTYPER[aarstype];
+  if(!type)return'';
+  const allPaletteColors=Object.values(FARGE_KAT).flat().filter(c=>!isNeutral(c.h));
+
+  function hueInRanges(h,ranges){return ranges.some(([a,b])=>h>=a&&h<=b);}
+  function assessColor(c){
+    const[h,s,l]=hexToHsl(c.h);
+    let issues=[];
+    if(l<type.lMin)issues.push('for mørk');
+    if(l>type.lMax)issues.push('for lys');
+    if(s<type.sMin)issues.push('for dus');
+    if(s>type.sMax)issues.push('for sterk');
+    if(type.avoidHues&&hueInRanges(h,type.avoidHues))issues.push('kald/varm undertone som kan kollidere');
+    const goodHue=!type.goodHues||hueInRanges(h,type.goodHues);
+    if(issues.length===0&&goodHue)return'god';
+    if(issues.length<=1&&goodHue)return'ok';
+    return'utfordrende';
+  }
+
+  const good=[],ok=[],challenging=[];
+  allPaletteColors.forEach(c=>{
+    const r=assessColor(c);
+    if(r==='god')good.push(c);
+    else if(r==='ok')ok.push(c);
+    else challenging.push(c);
+  });
+
+  function swatchRow(colors){
+    return colors.map(c=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border)">
+        <div style="width:28px;height:28px;border-radius:6px;background:${c.h};border:0.5px solid rgba(0,0,0,0.1);flex-shrink:0"></div>
+        <span style="font-size:13px">${c.n}</span>
+      </div>`).join('');
+  }
+
+  return`<div class="analyse-block" style="margin-bottom:1.2rem">
+    <div class="analyse-block-title">Dine farger vurdert mot ${aarstype}</div>
+    <p style="font-size:12px;color:var(--text3);line-height:1.5;margin-bottom:1rem">Dette er en generell fargeteoretisk vurdering. Individuelle nyanser vil variere, og personlige preferanser veier alltid tyngst.</p>
+    ${good.length?`<div style="margin-bottom:1rem">
+      <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:#3a7a3a;margin-bottom:6px">✓ Passer godt</div>
+      ${swatchRow(good)}
+    </div>`:''}
+    ${ok.length?`<div style="margin-bottom:1rem">
+      <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:#a07820;margin-bottom:6px">~ Kan fungere</div>
+      ${swatchRow(ok)}
+    </div>`:''}
+    ${challenging.length?`<div style="margin-bottom:0.5rem">
+      <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:#a03020;margin-bottom:6px">△ Kan være utfordrende</div>
+      ${swatchRow(challenging)}
+    </div>`:''}
+  </div>`;
+}
+
 let inspSelectedColor=null;
 
 function renderInspirasjon(){
@@ -2147,8 +2201,8 @@ function renderInspirasjon(){
           </div>
         </div>`).join('')}
       ${aarstype?`<div style="margin-top:8px;font-size:12px;color:var(--text2);padding:10px;background:var(--bg2);border-radius:var(--radius)">${AARSTYPER[aarstype].desc}<br><span style="font-size:11px;color:var(--text3);margin-top:4px;display:block">${AARSTYPER[aarstype].tips}</span></div>`:''}
-    </div>`;
-
+    </div>
+    ${aarstype?buildPaletteAssessment():''}`;
   // ── Utforsk en farge ──────────────────────────────────────────────────────
   // All unique logged colors (non-neutral)
   const allColors=outfits.flatMap(o=>(o.plagg||[]).flatMap(p=>p.colors||[])).filter(c=>!isNeutral(c.h));
