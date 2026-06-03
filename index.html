@@ -2108,6 +2108,8 @@ function getBestCombos(){
   return combos;
 }
 
+let inspSelectedColor=null;
+
 function renderInspirasjon(){
   const cont=document.getElementById('inspirasjon-content');
   const loggedCount=outfits.length;
@@ -2127,26 +2129,10 @@ function renderInspirasjon(){
     return;
   }
 
-  // Collect all logged colors
-  const allColors=outfits.flatMap(o=>(o.plagg||[]).flatMap(p=>p.colors||[])).filter(c=>!isNeutral(c.h));
-  const undertone=analyseUndertone(allColors);
-  const dominant=getDominantCats(allColors);
-  const missing=getMissingCats(allColors);
-  const combos=getBestCombos();
-
-  // Undertone label
-  const undertoneLabel={varm:'varme',kald:'kalde',nøytral:'nøytrale'}[undertone]||'varierte';
-  const undertoneDesc={
-    varm:'Varme farger har rødt, oransje eller gult undertone. De kler godt med andre varme nyanser.',
-    kald:'Kalde farger har blått eller grått undertone. De harmonerer med andre kjølige nyanser.',
-    nøytral:'Du bruker en god blanding av varme og kalde farger.'
-  }[undertone]||'';
-
-  // Årstidstype-velger
+  // ── Årstidstype-velger ────────────────────────────────────────────────────
   const sesonger=['vår','sommer','høst','vinter'];
   const typesBySesong={};
   Object.entries(AARSTYPER).forEach(([k,v])=>{if(!typesBySesong[v.sesong])typesBySesong[v.sesong]=[];typesBySesong[v.sesong].push(k);});
-
   const typePickerHtml=`
     <div class="analyse-block" style="margin-bottom:1.2rem">
       <div class="analyse-block-title">Din årstidstype</div>
@@ -2163,63 +2149,109 @@ function renderInspirasjon(){
       ${aarstype?`<div style="margin-top:8px;font-size:12px;color:var(--text2);padding:10px;background:var(--bg2);border-radius:var(--radius)">${AARSTYPER[aarstype].desc}<br><span style="font-size:11px;color:var(--text3);margin-top:4px;display:block">${AARSTYPER[aarstype].tips}</span></div>`:''}
     </div>`;
 
-  const suggestions=getColorSuggestions(allColors);
+  // ── Utforsk en farge ──────────────────────────────────────────────────────
+  // All unique logged colors (non-neutral)
+  const allColors=outfits.flatMap(o=>(o.plagg||[]).flatMap(p=>p.colors||[])).filter(c=>!isNeutral(c.h));
+  const uniqueLogged=[...new Map(allColors.map(c=>[c.h,c])).values()];
 
+  // All unique register colors (non-neutral)
+  const allRegColors=register.flatMap(r=>r.colors||[]).filter(c=>!isNeutral(c.h));
+  const uniqueReg=[...new Map(allRegColors.map(c=>[c.h,c])).values()];
 
-  let suggestHtml='';
-  if(suggestions.length){
-    suggestHtml=suggestions.map(s=>`
-      <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:0.5px solid var(--border)">
-        <div style="width:52px;height:52px;border-radius:10px;background:${s.h};border:0.5px solid rgba(0,0,0,0.1);flex-shrink:0"></div>
+  // Combine for the picker — logged first, then register-only
+  const loggedHexes=new Set(uniqueLogged.map(c=>c.h));
+  const regOnlyColors=uniqueReg.filter(c=>!loggedHexes.has(c.h));
+  const allPickerColors=[...uniqueLogged,...regOnlyColors];
+
+  let explorerResultHtml='';
+  if(inspSelectedColor){
+    const sc=inspSelectedColor;
+    const [sh,ss,sl]=hexToHsl(sc.h);
+
+    // Colours from palette/register that work with selected
+    const paletteMatches=[];
+    Object.values(FARGE_KAT).flat().forEach(c=>{
+      if(c.h===sc.h||isNeutral(c.h))return;
+      const[ch,cs,cl]=hexToHsl(c.h);
+      const hueDiff=Math.min(Math.abs(sh-ch),360-Math.abs(sh-ch));
+      let rel='',score=0;
+      if(hueDiff<30){rel='Analog — nabo på fargehjulet, harmonisk';score=3;}
+      else if(hueDiff>150&&hueDiff<210){rel='Komplementær — sterk kontrast';score=2;}
+      else if(hueDiff>100&&hueDiff<140){rel='Split-komplementær — spennende men mykere';score=2;}
+      else if(Math.abs(hueDiff-120)<20||Math.abs(hueDiff-240)<20){rel='Triadisk — balansert trefarge-harmoni';score=1;}
+      if(rel)paletteMatches.push({...c,rel,score});
+    });
+    paletteMatches.sort((a,b)=>b.score-a.score);
+
+    // New colour suggestions
+    const newSuggestions=getColorSuggestions([sc]);
+
+    const paletteHtml=paletteMatches.slice(0,6).map(c=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--border)">
+        <div style="width:36px;height:36px;border-radius:7px;background:${c.h};border:0.5px solid rgba(0,0,0,0.08);flex-shrink:0"></div>
         <div>
-          <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:3px">${s.h}</div>
-          <div style="font-size:12px;color:var(--text2);line-height:1.5">${s.reason}</div>
+          <div style="font-size:13px;font-weight:500">${c.n}</div>
+          <div style="font-size:11px;color:var(--text3)">${c.rel}</div>
         </div>
       </div>`).join('');
-  }
 
-  // Combos
-  let combosHtml='';
-  if(combos.length){
-    combosHtml=combos.map(c=>`
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border)">
-        <div style="width:32px;height:32px;border-radius:6px;background:${c.color.h};border:0.5px solid rgba(0,0,0,0.1);flex-shrink:0"></div>
+    const newHtml=newSuggestions.slice(0,4).map(s=>`
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:0.5px solid var(--border)">
+        <div style="width:36px;height:36px;border-radius:7px;background:${s.h};border:0.5px solid rgba(0,0,0,0.08);flex-shrink:0"></div>
         <div>
-          <div style="font-size:13px;font-weight:500">${c.color.n}</div>
-          <div style="font-size:12px;color:var(--text2)">Brukt i ${c.count} antrekk · ${c.occasions.join(', ')}</div>
+          <div style="font-size:12px;font-weight:500;color:var(--text)">${s.h}</div>
+          <div style="font-size:11px;color:var(--text3);line-height:1.4">${s.reason}</div>
         </div>
       </div>`).join('');
+
+    explorerResultHtml=`
+      <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg2);border-radius:var(--radius);margin-bottom:1rem">
+        <div style="width:44px;height:44px;border-radius:9px;background:${sc.h};border:0.5px solid rgba(0,0,0,0.1);flex-shrink:0"></div>
+        <div>
+          <div style="font-size:14px;font-weight:500">${sc.n||sc.h}</div>
+          <div style="font-size:11px;color:var(--text3)">${loggedHexes.has(sc.h)?'Fra loggede antrekk':'Fra registeret'}</div>
+        </div>
+      </div>
+      ${paletteMatches.length?`<div style="font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">Fra din palett</div>${paletteHtml}`:''}
+      ${newSuggestions.length?`<div style="font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin:12px 0 6px">Nye farger å prøve</div>${newHtml}`:''}`;
   }
 
-  cont.innerHTML=`
-    ${typePickerHtml}
+  const colorPickerHtml=`
     <div class="analyse-block" style="margin-bottom:1.2rem">
-      <div class="analyse-block-title">Din fargeprofil</div>
-      <p style="font-size:14px;margin-bottom:0.8rem">Du bruker primært <strong>${undertoneLabel}</strong> farger. ${undertoneDesc}</p>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${allColors.filter((c,i,arr)=>arr.findIndex(x=>x.n===c.n)===i&&!isNeutral(c.h)).slice(0,12).map(c=>`
-          <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
-            <div style="width:36px;height:36px;border-radius:7px;background:${c.h};border:0.5px solid rgba(0,0,0,0.08)" title="${c.n}"></div>
+      <div class="analyse-block-title">Utforsk en farge</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Velg en farge for å se hva som passer til den — fra paletten din og helt nye forslag.</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem">
+        ${allPickerColors.map(c=>`
+          <div onclick="inspSelectedColor=${JSON.stringify(c).replace(/"/g,'&quot;')};renderInspirasjon()"
+            style="width:36px;height:36px;border-radius:7px;background:${c.h};border:${inspSelectedColor&&inspSelectedColor.h===c.h?'3px solid var(--text)':'0.5px solid rgba(0,0,0,0.1)'};cursor:pointer;flex-shrink:0"
+            title="${c.n||c.h}"></div>`).join('')}
+      </div>
+      ${explorerResultHtml}
+    </div>`;
+
+  // ── Ubrukte farger ────────────────────────────────────────────────────────
+  const unusedColors=uniqueReg.filter(c=>!loggedHexes.has(c.h));
+  const unusedHtml=unusedColors.length?`
+    <div class="analyse-block" style="margin-bottom:1.2rem">
+      <div class="analyse-block-title">Farger du har men ikke har brukt</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Disse fargene finnes i registeret men har aldri dukket opp i loggede antrekk. Kanskje du mangler noe å kombinere dem med?</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${unusedColors.map(c=>`
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer"
+            onclick="inspSelectedColor=${JSON.stringify(c).replace(/"/g,'&quot;')};renderInspirasjon();document.querySelector('.analyse-block-title').scrollIntoView()">
+            <div style="width:44px;height:44px;border-radius:9px;background:${c.h};border:0.5px solid rgba(0,0,0,0.1)"></div>
+            <div style="font-size:10px;color:var(--text3);text-align:center;max-width:50px;line-height:1.2">${c.n||''}</div>
           </div>`).join('')}
       </div>
-    </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:10px">Trykk på en farge for å se hva den kan kombineres med.</div>
+    </div>`:
+    `<div class="analyse-block" style="margin-bottom:1.2rem">
+      <div class="analyse-block-title">Farger du har men ikke har brukt</div>
+      <p style="font-size:13px;color:var(--text2)">Alle registrerte farger er logget brukt — bra!</p>
+    </div>`;
 
-    ${suggestions.length?`
-    <div class="analyse-block" style="margin-bottom:1.2rem">
-      <div class="analyse-block-title">Farger som kan passe inn</div>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Beregnet fra fargeharmoni med dine faktiske farger — farger du ikke har i garderoben ennå.</p>
-      ${suggestHtml}
-    </div>`:''}
-
-    ${combos.length?`
-    <div class="analyse-block" style="margin-bottom:1.2rem">
-      <div class="analyse-block-title">Farger som går igjen</div>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:0.8rem">Disse fargene dukker opp i mange av antrekkene dine.</p>
-      ${combosHtml}
-    </div>`:''}
-  `;
+  cont.innerHTML=`${typePickerHtml}${colorPickerHtml}${unusedHtml}`;
 }
-
 
 
 // ── LOGG FRA SCENARIO ─────────────────────────────────────────────────────────
