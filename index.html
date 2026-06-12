@@ -509,13 +509,16 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
       <div id="rm-color-acc"></div>
       <div class="sel-colors" id="rm-sel-colors"></div>
     </div>
+    <div class="field" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--bg2);border-radius:var(--radius)">
+      <input type="checkbox" id="rm-replace" style="width:18px;height:18px;flex-shrink:0;accent-color:#c0392b">
+      <label for="rm-replace" style="font-size:14px;color:var(--text);cursor:pointer;margin:0">Må erstattes</label>
+    </div>
     <div class="modal-btns">
       <button class="btn-ghost" onclick="closeRegModal()">Avbryt</button>
       <button class="btn-primary" style="margin-top:0" onclick="saveRegItem()">Lagre</button>
     </div>
   </div>
 </div>
-
 <script>
 // ── ÅRSTIDSTYPER ─────────────────────────────────────────────────────────────
 const AARSTYPER={
@@ -592,7 +595,7 @@ const AARSTYPER={
     lMin:25,lMax:60, sMin:30,sMax:80,
     goodHues:[[0,60],[300,360]], avoidHues:[[180,270]],
     avoidDark:false, avoidMuted:false,
-    tips:'Rike jordfarger, rust, okker og oliven er din styrke. Unngå kalde blå og rosa.'
+    tips:'Rike jordfarger, rust, oker og oliven er din styrke. Unngå kalde blå og rosa.'
   },
   'Varm høst':{
     sesong:'høst', desc:'Den varmeste høsten. Gylne, oransje og jordnære varme farger.',
@@ -690,7 +693,7 @@ let outfits=[],scenarios=[],register=[],customOcc=[];
 let plaggCounters={log:{},sm:{},em:{}};
 const colorInstances={};
 let editingOutfitId=null,editingScenarioId=null,editingRegId=null;
-let regFilterType='Alle',regFilterStatus='Alle',regFilterKat='Alle';
+let regFilterType='Alle',regFilterStatus='Alle',regFilterKat='Alle',regFilterReplace=false;
 
 function loadData(){
   // migrate from skap2_ keys if needed
@@ -1233,7 +1236,7 @@ function renderRegister(){
   tf.innerHTML=types.map(t=>{
     const isActive=((['I skapet','På lager'].includes(t)&&t===regFilterStatus)||(!['I skapet','På lager'].includes(t)&&t===regFilterType));
     return `<button class="reg-filter-btn${isActive?' active':''}" onclick="setRegFilter('${t}')">${t}</button>`;
-  }).join('');
+  }).join('')+`<button class="reg-filter-btn${regFilterReplace?' active':''}" style="color:${regFilterReplace?'#fff':'#c0392b'};border-color:#c0392b;${regFilterReplace?'background:#c0392b':''}" onclick="regFilterReplace=!regFilterReplace;renderRegister()">Må erstattes</button>`;
   const cf=document.getElementById('reg-color-filters');
   cf.innerHTML=['Alle farger',...FARGEKAT_NAMES].map(k=>{
     const kk=k==='Alle farger'?'Alle':k;
@@ -1243,6 +1246,7 @@ function renderRegister(){
   if(regFilterType!=='Alle'&&!['I skapet','På lager'].includes(regFilterType))items=items.filter(r=>r.type===regFilterType);
   if(regFilterStatus!=='Alle')items=items.filter(r=>r.status===regFilterStatus);
   if(regFilterKat!=='Alle')items=items.filter(r=>(r.colors||[]).some(c=>katForShade(c.n)===regFilterKat));
+  if(regFilterReplace)items=items.filter(r=>r.mustReplace);
   const list=document.getElementById('reg-list');
   if(!items.length){list.innerHTML='<div class="log-empty">Ingen plagg funnet.</div>';return;}
   items.sort((a,b)=>a.type>b.type?1:a.type<b.type?-1:a.naam>b.naam?1:-1);
@@ -1250,7 +1254,13 @@ function renderRegister(){
     const dots=(r.colors||[]).map(c=>catSq(c)).join('');
     return `<div class="reg-item">
       <span class="reg-item-type">${r.type}</span>
-      <div style="flex:1;min-width:100px"><span style="font-weight:500">${r.naam}</span>${r.besk?`<div style="font-size:11px;color:var(--text3);margin-top:1px">${r.besk}</div>`:''}</div>
+      <div style="flex:1;min-width:100px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-weight:500">${r.naam}</span>
+          ${r.mustReplace?`<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#fde8e8;color:#c0392b;white-space:nowrap">Må erstattes</span>`:''}
+        </div>
+        ${r.besk?`<div style="font-size:11px;color:var(--text3);margin-top:1px">${r.besk}</div>`:''}
+      </div>
       ${dots?`<div style="display:flex;gap:3px;flex-wrap:wrap">${dots}</div>`:''}
       <span class="reg-status-badge${r.status==='På lager'?' lagret':''}">${r.status}</span>
       <div style="display:flex;gap:5px;flex-shrink:0">
@@ -1298,6 +1308,7 @@ function openAddRegModal(){
   document.getElementById('rm-besk').value='';
   document.getElementById('rm-type').value='Overdel';
   document.getElementById('rm-status').value='I skapet';
+  document.getElementById('rm-replace').checked=false;
   renderRegTempCheckboxes([]);
   renderRegOccasions([]);
   const cont=document.getElementById('rm-color-acc');
@@ -1315,6 +1326,7 @@ function openEditRegModal(id){
   document.getElementById('rm-besk').value=r.besk||'';
   document.getElementById('rm-type').value=r.type;
   document.getElementById('rm-status').value=r.status;
+  document.getElementById('rm-replace').checked=r.mustReplace||false;
   renderRegTempCheckboxes(r.temps||[]);
   renderRegOccasions(r.occasions||[]);
   const cont=document.getElementById('rm-color-acc');
@@ -1332,11 +1344,12 @@ function saveRegItem(){
   const colors=(colorInstances['reg-modal-color']?.sel||[]).map(s=>({n:s.n,h:s.h}));
   const temps=getRegTemps();
   const occasions=getRegOccasions();
+  const mustReplace=document.getElementById('rm-replace').checked;
   if(editingRegId){
     const r=register.find(x=>x.id==editingRegId);
-    if(r){r.naam=naam;r.besk=besk;r.type=document.getElementById('rm-type').value;r.status=document.getElementById('rm-status').value;r.colors=colors;r.temps=temps;r.occasions=occasions;}
+    if(r){r.naam=naam;r.besk=besk;r.type=document.getElementById('rm-type').value;r.status=document.getElementById('rm-status').value;r.colors=colors;r.temps=temps;r.occasions=occasions;r.mustReplace=mustReplace;}
   } else {
-    register.push({id:Date.now(),naam,besk,type:document.getElementById('rm-type').value,status:document.getElementById('rm-status').value,colors,temps,occasions});
+    register.push({id:Date.now(),naam,besk,type:document.getElementById('rm-type').value,status:document.getElementById('rm-status').value,colors,temps,occasions,mustReplace});
   }
   saveData();closeRegModal();renderRegister();
 }
@@ -2674,14 +2687,14 @@ function renderHjem(){
   cont.innerHTML=`
     <div style="padding:0.5rem 0 1.5rem">
 
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:1.5rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:1rem">
         <div style="background:var(--bg2);border-radius:var(--radius);padding:12px 10px;text-align:center">
           <div style="font-size:22px;font-weight:600;color:var(--text)">${outfits.length}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px">loggede antrekk</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">antrekk</div>
         </div>
         <div style="background:var(--bg2);border-radius:var(--radius);padding:12px 10px;text-align:center">
           <div style="font-size:22px;font-weight:600;color:var(--text)">${regActive}<span style="font-size:13px;color:var(--text3)">/${regTotal}</span></div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px">plagg i skapet</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">plagg</div>
         </div>
         <div style="background:var(--bg2);border-radius:var(--radius);padding:12px 10px;text-align:center">
           <div style="font-size:22px;font-weight:600;color:var(--text)">${scenarios.length}</div>
@@ -2689,31 +2702,26 @@ function renderHjem(){
         </div>
       </div>
 
-      ${dominantKat?`<div style="font-size:13px;color:var(--text2);margin-bottom:1.2rem;padding:10px 12px;background:var(--bg2);border-radius:var(--radius)">
-        Vanligste farge (foruten svart, hvit og grå): <strong style="color:var(--text)">${dominantKat}</strong>
-      </div>`:''}
+      ${lastOutfit?`<div style="font-size:12px;color:var(--text3);margin-bottom:1rem">Sist logget: ${lastDate}${lastOutfit.occasion?' · '+lastOutfit.occasion:''}</div>`:''}
 
-      ${lastOutfit?`<div style="font-size:12px;color:var(--text3);margin-bottom:1.2rem">Sist logget: ${lastDate}${lastOutfit.occasion?' · '+lastOutfit.occasion:''}</div>`:''}
-
-      ${mostUsedRows?`<div style="margin-bottom:1.5rem">
-        <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3);margin-bottom:6px">Mest brukt per anledning</div>
-        <div style="font-size:10px;color:var(--text3);margin-bottom:6px">Kun plagg brukt minst 3 ganger</div>
-        ${mostUsedRows}
-      </div>`:''}
-
-      ${versatileRows?`<div style="margin-bottom:1.5rem">
-        <div style="font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3);margin-bottom:6px">Mest anvendelige plagg</div>
-        <div style="font-size:10px;color:var(--text3);margin-bottom:6px">Flest registrerte anledninger · kun plagg brukt minst 3 ganger</div>
-        ${versatileRows}
-      </div>`:''}
-
-      <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:1.2rem">
         <button class="btn-primary" style="margin-top:0" onclick="document.querySelector('.nav button:nth-child(2)').click()">+ Logg dagens antrekk</button>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <button class="btn-ghost" onclick="document.querySelector('.nav button:nth-child(4)').click()">Planlegg scenario</button>
           <button class="btn-ghost" onclick="document.querySelector('.nav button:nth-child(6)').click()">Ny pakkeliste</button>
         </div>
       </div>
+
+      ${mostUsedRows?`<details style="margin-bottom:1rem">
+        <summary style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3);cursor:pointer;padding:6px 0;border-top:0.5px solid var(--border)">Mest brukt per anledning</summary>
+        <div style="margin-top:8px">${mostUsedRows}</div>
+      </details>`:''}
+
+      ${versatileRows?`<details style="margin-bottom:1rem">
+        <summary style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3);cursor:pointer;padding:6px 0;border-top:0.5px solid var(--border)">Mest anvendelige plagg</summary>
+        <div style="margin-top:8px">${versatileRows}</div>
+      </details>`:''}
+
     </div>`;
 }
 function exportData(){
