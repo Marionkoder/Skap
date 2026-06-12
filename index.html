@@ -491,10 +491,15 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
     <div class="field"><label>Navn / tittel</label><input type="text" id="rm-navn"></div>
     <div class="field"><label>Beskrivelse (valgfritt)</label><textarea id="rm-besk" rows="2" style="resize:vertical;font-size:13px"></textarea></div>
     <div class="field"><label>Type</label>
-      <select id="rm-type"><option>Overdel</option><option>Underdel</option><option>Ytterlag</option><option>Sko</option><option>Tilbehør</option><option>Helfigur</option><option>Smykker</option></select>
+      <select id="rm-type" onchange="updateFitOptions()"><option>Overdel</option><option>Underdel</option><option>Ytterlag</option><option>Sko</option><option>Tilbehør</option><option>Helfigur</option><option>Smykker</option></select>
     </div>
-    <div class="field"><label>Status</label>
-      <select id="rm-status"><option>I skapet</option><option>På lager</option></select>
+    <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label>Status</label>
+        <select id="rm-status"><option>I skapet</option><option>På lager</option></select>
+      </div>
+      <div><label>Passform</label>
+        <select id="rm-fit"><option value="">–</option></select>
+      </div>
     </div>
     <div class="field">
       <label>Temperatur (hak av alle som passer)</label>
@@ -1255,9 +1260,10 @@ function renderRegister(){
     return `<div class="reg-item">
       <span class="reg-item-type">${r.type}</span>
       <div style="flex:1;min-width:100px">
-        <div style="display:flex;align-items:center;gap:6px">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span style="font-weight:500">${r.naam}</span>
           ${r.mustReplace?`<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#fde8e8;color:#c0392b;white-space:nowrap">Må erstattes</span>`:''}
+          ${r.fit&&r.fit!=='Passer'?`<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#fef3e2;color:#b07800;white-space:nowrap">${r.fit}</span>`:''}
         </div>
         ${r.besk?`<div style="font-size:11px;color:var(--text3);margin-top:1px">${r.besk}</div>`:''}
       </div>
@@ -1301,6 +1307,16 @@ function renderRegOccasions(selected){
 function getRegOccasions(){
   return [...document.querySelectorAll('#rm-occasions input[type=checkbox]:checked')].map(cb=>cb.value);
 }
+function updateFitOptions(fit){
+  const type=document.getElementById('rm-type')?.value;
+  const sel=document.getElementById('rm-fit');if(!sel)return;
+  const sko=type==='Sko';
+  sel.innerHTML=`<option value="">–</option>
+    <option value="Passer">Passer</option>
+    <option value="${sko?'For små':'For liten'}">${sko?'For små':'For liten'}</option>
+    <option value="${sko?'For store':'For stor'}">${sko?'For store':'For stor'}</option>`;
+  if(fit)sel.value=fit;
+}
 function openAddRegModal(){
   editingRegId=null;
   document.getElementById('reg-modal-title').textContent='Nytt plagg';
@@ -1309,6 +1325,7 @@ function openAddRegModal(){
   document.getElementById('rm-type').value='Overdel';
   document.getElementById('rm-status').value='I skapet';
   document.getElementById('rm-replace').checked=false;
+  updateFitOptions();
   renderRegTempCheckboxes([]);
   renderRegOccasions([]);
   const cont=document.getElementById('rm-color-acc');
@@ -1327,6 +1344,7 @@ function openEditRegModal(id){
   document.getElementById('rm-type').value=r.type;
   document.getElementById('rm-status').value=r.status;
   document.getElementById('rm-replace').checked=r.mustReplace||false;
+  updateFitOptions(r.fit||'');
   renderRegTempCheckboxes(r.temps||[]);
   renderRegOccasions(r.occasions||[]);
   const cont=document.getElementById('rm-color-acc');
@@ -1345,11 +1363,12 @@ function saveRegItem(){
   const temps=getRegTemps();
   const occasions=getRegOccasions();
   const mustReplace=document.getElementById('rm-replace').checked;
+  const fit=document.getElementById('rm-fit').value||null;
   if(editingRegId){
     const r=register.find(x=>x.id==editingRegId);
-    if(r){r.naam=naam;r.besk=besk;r.type=document.getElementById('rm-type').value;r.status=document.getElementById('rm-status').value;r.colors=colors;r.temps=temps;r.occasions=occasions;r.mustReplace=mustReplace;}
+    if(r){r.naam=naam;r.besk=besk;r.type=document.getElementById('rm-type').value;r.status=document.getElementById('rm-status').value;r.colors=colors;r.temps=temps;r.occasions=occasions;r.mustReplace=mustReplace;r.fit=fit;}
   } else {
-    register.push({id:Date.now(),naam,besk,type:document.getElementById('rm-type').value,status:document.getElementById('rm-status').value,colors,temps,occasions,mustReplace});
+    register.push({id:Date.now(),naam,besk,type:document.getElementById('rm-type').value,status:document.getElementById('rm-status').value,colors,temps,occasions,mustReplace,fit});
   }
   saveData();closeRegModal();renderRegister();
 }
