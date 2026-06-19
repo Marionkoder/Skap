@@ -243,7 +243,10 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
       const colorCount={};
       const outfitsData=JSON.parse(localStorage.getItem('skap_outfits')||'[]');
       outfitsData.forEach(o=>(o.plagg||[]).forEach(p=>(p.colors||[]).forEach(c=>{
-        if(c.h)colorCount[c.h]=(colorCount[c.h]||{h:c.h,n:c.n,count:0}),colorCount[c.h].count++;
+        // Only count the primary color of each garment — secondary colors don't count toward "most used"
+        const hasPrimaryMarked=(p.colors||[]).some(x=>x.primary);
+        const isPrimary=c.primary||(!hasPrimaryMarked&&p.colors[0]===c);
+        if(c.h&&isPrimary)colorCount[c.h]=(colorCount[c.h]||{h:c.h,n:c.n,count:0}),colorCount[c.h].count++;
       })));
       const top5=Object.values(colorCount).filter(c=>{
         if(c.count<3)return false;
@@ -850,11 +853,26 @@ function buildColorAccordion(instanceId,preSelected){
 
   const bar=document.createElement('div');bar.className='sel-colors';
   function updateBar(){
-    bar.innerHTML=sel.map(s=>`<div class="sel-chip" data-iid="${instanceId}" data-sn="${s.n}"><div style="width:12px;height:12px;border-radius:2px;background:${s.h};border:0.5px solid rgba(0,0,0,0.12);flex-shrink:0"></div>${s.n} ×</div>`).join('');
-    bar.querySelectorAll('.sel-chip').forEach(c=>c.onclick=()=>{
+    // Ensure exactly one primary if any colors exist and none marked
+    if(sel.length&&!sel.some(s=>s.primary))sel[0].primary=true;
+    bar.innerHTML=sel.map(s=>`<div class="sel-chip" data-iid="${instanceId}" data-sn="${s.n}" style="display:flex;align-items:center;gap:5px">
+      <span class="sel-chip-star" data-iid="${instanceId}" data-sn="${s.n}" title="${s.primary?'Hovedfarge':'Sett som hovedfarge'}" style="cursor:pointer;font-size:13px;color:${s.primary?'#c9a227':'var(--text3)'}">${s.primary?'★':'☆'}</span>
+      <div style="width:12px;height:12px;border-radius:2px;background:${s.h};border:0.5px solid rgba(0,0,0,0.12);flex-shrink:0"></div>${s.n} <span class="sel-chip-x" data-iid="${instanceId}" data-sn="${s.n}" style="cursor:pointer">×</span></div>`).join('');
+    bar.querySelectorAll('.sel-chip-x').forEach(c=>c.onclick=()=>{
       const inst=colorInstances[c.dataset.iid];if(!inst)return;
       const idx=inst.sel.findIndex(s=>s.n===c.dataset.sn);
-      if(idx>=0){inst.sel.splice(idx,1);inst.wrap.querySelector(`[title="${c.dataset.sn}"]`)?.classList.remove('selected');inst.updateBar();}
+      if(idx>=0){
+        const wasPrimary=inst.sel[idx].primary;
+        inst.sel.splice(idx,1);
+        if(wasPrimary&&inst.sel.length)inst.sel[0].primary=true;
+        inst.wrap.querySelector(`[title="${c.dataset.sn}"]`)?.classList.remove('selected');
+        inst.updateBar();
+      }
+    });
+    bar.querySelectorAll('.sel-chip-star').forEach(c=>c.onclick=()=>{
+      const inst=colorInstances[c.dataset.iid];if(!inst)return;
+      inst.sel.forEach(s=>s.primary=(s.n===c.dataset.sn));
+      inst.updateBar();
     });
   }
 
@@ -1003,7 +1021,7 @@ function collectPlagg(context){
     const naam=item.querySelector('input[type="text"]').value.trim();
     const beskEl=item.querySelector('textarea');
     const besk=beskEl?beskEl.value.trim():'';
-    const colors=colorInstances[iid]?colorInstances[iid].sel.map(s=>({n:s.n,h:s.h})):[];
+    const colors=colorInstances[iid]?colorInstances[iid].sel.map(s=>({n:s.n,h:s.h,primary:!!s.primary})):[];
     if(naam||colors.length)result.push({type,naam,besk,colors});
   });
   return result;
@@ -1255,8 +1273,12 @@ function renderRegister(){
   const list=document.getElementById('reg-list');
   if(!items.length){list.innerHTML='<div class="log-empty">Ingen plagg funnet.</div>';return;}
   items.sort((a,b)=>a.type>b.type?1:a.type<b.type?-1:a.naam>b.naam?1:-1);
+  function usageCount(naam){
+    return outfits.reduce((sum,o)=>sum+(o.plagg||[]).filter(p=>p.naam&&p.naam.toLowerCase()===naam.toLowerCase()).length,0);
+  }
   list.innerHTML=items.map(r=>{
     const dots=(r.colors||[]).map(c=>catSq(c)).join('');
+    const uses=usageCount(r.naam);
     return `<div class="reg-item">
       <span class="reg-item-type">${r.type}</span>
       <div style="flex:1;min-width:100px">
@@ -1266,6 +1288,7 @@ function renderRegister(){
           ${r.fit&&r.fit!=='Passer'?`<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#fef3e2;color:#b07800;white-space:nowrap">${r.fit}</span>`:''}
         </div>
         ${r.besk?`<div style="font-size:11px;color:var(--text3);margin-top:1px">${r.besk}</div>`:''}
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Brukt ${uses} gang${uses===1?'':'er'}</div>
       </div>
       ${dots?`<div style="display:flex;gap:3px;flex-wrap:wrap">${dots}</div>`:''}
       <span class="reg-status-badge${r.status==='På lager'?' lagret':''}">${r.status}</span>
@@ -1359,7 +1382,7 @@ function saveRegItem(){
   const naam=document.getElementById('rm-navn').value.trim();
   if(!naam){showMsg('save-msg','Fyll inn navn på plagget.','warn');return;}
   const besk=document.getElementById('rm-besk').value.trim();
-  const colors=(colorInstances['reg-modal-color']?.sel||[]).map(s=>({n:s.n,h:s.h}));
+  const colors=(colorInstances['reg-modal-color']?.sel||[]).map(s=>({n:s.n,h:s.h,primary:!!s.primary}));
   const temps=getRegTemps();
   const occasions=getRegOccasions();
   const mustReplace=document.getElementById('rm-replace').checked;
@@ -2651,46 +2674,62 @@ function renderHjem(){
   const lastOutfit=sortedOutfits[0];
   const lastDate=lastOutfit?formatDate(lastOutfit.date):'–';
 
-  // ── Mest brukte plagg per anledning (min 3 ganger totalt) ─────────────────
+  // ── Mest brukte plagg per anledning, brutt ned på temperaturgruppe ────────
+  // Temperaturgrupper: Kaldt (Iskaldt-Kjølig), Mildt (Mildt-Linnt), Varmt (Varmt-Glovarmt)
+  const TEMP_BUCKETS={'Kaldt':[0,1,2],'Mildt':[3,4],'Varmt':[5,6]};
   const plaggCount={};
   outfits.forEach(o=>(o.plagg||[]).forEach(p=>{
     if(!p.naam)return;
-    if(!plaggCount[p.naam])plaggCount[p.naam]={total:0,occ:{}};
+    if(!plaggCount[p.naam])plaggCount[p.naam]={total:0,occTemp:{},temps:new Set()};
     plaggCount[p.naam].total++;
+    if(o.temp!=null)plaggCount[p.naam].temps.add(o.temp);
     if(o.occasion){
-      plaggCount[p.naam].occ[o.occasion]=(plaggCount[p.naam].occ[o.occasion]||0)+1;
+      const bucket=Object.entries(TEMP_BUCKETS).find(([_,arr])=>arr.includes(o.temp))?.[0]||'Mildt';
+      const key=o.occasion+'|'+bucket;
+      plaggCount[p.naam].occTemp[key]=(plaggCount[p.naam].occTemp[key]||0)+1;
     }
   }));
 
-  const mostUsedPerOcc={};
+  const mostUsedByOcc={};
   allOcc().forEach(occ=>{
-    let best=null,bestCount=0;
-    Object.entries(plaggCount).forEach(([naam,data])=>{
-      if(data.total>=3&&(data.occ[occ]||0)>bestCount){
-        bestCount=data.occ[occ];
-        best={naam,count:bestCount};
+    Object.keys(TEMP_BUCKETS).forEach(bucket=>{
+      const key=occ+'|'+bucket;
+      let best=null,bestCount=0;
+      Object.entries(plaggCount).forEach(([naam,data])=>{
+        if(data.total>=3&&(data.occTemp[key]||0)>bestCount){
+          bestCount=data.occTemp[key];
+          best={naam,count:bestCount};
+        }
+      });
+      if(best){
+        if(!mostUsedByOcc[occ])mostUsedByOcc[occ]=[];
+        mostUsedByOcc[occ].push({bucket,...best});
       }
     });
-    if(best)mostUsedPerOcc[occ]=best;
   });
 
-  const mostUsedRows=Object.entries(mostUsedPerOcc).map(([occ,p])=>
-    `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:0.5px solid var(--border)">
-      <span style="font-size:12px;color:var(--text3);min-width:90px">${occ}</span>
-      <span style="font-size:13px;font-weight:500;color:var(--text)">${p.naam}</span>
-      <span style="font-size:11px;color:var(--text3)">${p.count}×</span>
+  const mostUsedRows=Object.entries(mostUsedByOcc).map(([occ,buckets])=>`
+    <div style="padding:6px 0;border-bottom:0.5px solid var(--border)">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:3px">${occ}</div>
+      ${buckets.map(b=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0 2px 8px">
+        <span style="font-size:11px;color:var(--text3);min-width:50px">${b.bucket}</span>
+        <span style="font-size:13px;font-weight:500;color:var(--text);flex:1;text-align:left;margin-left:6px">${b.naam}</span>
+        <span style="font-size:11px;color:var(--text3)">${b.count}×</span>
+      </div>`).join('')}
     </div>`
   ).join('');
 
-  // ── Mest anvendelige plagg per plaggtype (min 3 ganger brukt) ────────────
+  // ── Mest anvendelige plagg per plaggtype — vekter anledninger og temperaturbredde ────
   const versatile={};
   Object.entries(plaggCount).forEach(([naam,data])=>{
     if(data.total<3)return;
     const r=register.find(x=>x.naam===naam);
-    const occCount=r?(r.occasions||[]).length:Object.keys(data.occ).length;
+    const occCount=r?(r.occasions||[]).length:new Set(Object.keys(data.occTemp).map(k=>k.split('|')[0])).size;
+    const tempCount=r&&r.temps&&r.temps.length?r.temps.length:data.temps.size;
     const type=r?r.type:(outfits.flatMap(o=>o.plagg||[]).find(p=>p.naam===naam)||{}).type||'Annet';
-    if(!versatile[type]||occCount>versatile[type].occCount){
-      versatile[type]={naam,occCount,total:data.total};
+    const score=occCount+tempCount;
+    if(!versatile[type]||score>versatile[type].score){
+      versatile[type]={naam,occCount,tempCount,score,total:data.total};
     }
   });
 
@@ -2699,7 +2738,7 @@ function renderHjem(){
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:0.5px solid var(--border)">
       <span style="font-size:12px;color:var(--text3);min-width:90px">${type}</span>
       <span style="font-size:13px;font-weight:500;color:var(--text)">${v.naam}</span>
-      <span style="font-size:11px;color:var(--text3)">${v.occCount} anl.</span>
+      <span style="font-size:11px;color:var(--text3)">${v.occCount} anl. · ${v.tempCount} temp.</span>
     </div>`;
   }).join('');
 
