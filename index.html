@@ -303,10 +303,15 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
   <button onclick="showTab('pakkeliste',this)">Pakkeliste</button>
   <button onclick="showTab('analyse',this)">Analyse</button>
   <button onclick="showTab('inspirasjon',this)">Inspirasjon</button>
+  <button onclick="showTab('kapsel',this)">Kapselgarderobe</button>
 </div>
 
 <!-- HJEM -->
 <div class="section active" id="tab-hjem"></div>
+<!-- KAPSELGARDEROBE -->
+<div class="section" id="tab-kapsel">
+  <div id="kapsel-content"></div>
+</div>
 <div class="section" id="tab-logg">
   <details id="log-scenario-picker" style="margin-bottom:1.2rem;border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">
     <summary style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:var(--text2);cursor:pointer;padding:10px 14px;background:var(--bg2)">Logg planlagt antrekk</summary>
@@ -2622,6 +2627,66 @@ function showTab(id,btn){
   if(id==='pakkeliste'){renderPackLists();}
   if(id==='analyse')renderAnalyse();
   if(id==='inspirasjon')renderInspirasjon();
+  if(id==='kapsel')renderKapsel();
+}
+
+function renderKapsel(){
+  const cont=document.getElementById('kapsel-content');
+  if(!outfits.length){
+    cont.innerHTML='<div class="empty" style="text-align:center;padding:3rem 1rem;color:var(--text3)">Logg noen antrekk for å se kapselgarderoben din ta form.</div>';
+    return;
+  }
+
+  const TEMP_BUCKETS={'Kaldt':[0,1,2],'Mildt':[3,4],'Varmt':[5,6]};
+
+  // Build count: key = occasion|tempBucket|plaggType -> {naam: count}
+  const data={};
+  outfits.forEach(o=>{
+    if(!o.occasion||o.temp==null)return;
+    const bucket=Object.entries(TEMP_BUCKETS).find(([_,arr])=>arr.includes(o.temp))?.[0]||'Mildt';
+    (o.plagg||[]).forEach(p=>{
+      if(!p.naam)return;
+      const key=o.occasion+'|'+bucket+'|'+p.type;
+      if(!data[key])data[key]={};
+      data[key][p.naam]=(data[key][p.naam]||0)+1;
+    });
+  });
+
+  const usedOccs=new Set();
+  outfits.forEach(o=>{if(o.occasion)usedOccs.add(o.occasion);});
+  const occs=allOcc().filter(o=>usedOccs.has(o));
+
+  const sections=occs.map(occ=>{
+    const bucketBlocks=Object.keys(TEMP_BUCKETS).map(bucket=>{
+      const typeRows=PLAGG_TYPER.map(type=>{
+        const key=occ+'|'+bucket+'|'+type;
+        const counts=data[key];
+        if(!counts)return'';
+        const best=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];
+        if(!best||best[1]<2)return''; // require at least 2 uses to count as a capsule piece
+        const r=register.find(x=>x.naam===best[0]);
+        const dots=r&&r.colors?r.colors.map(c=>catSq(c,11)).join(''):'';
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:0.5px solid var(--border)">
+          <span style="font-size:11px;color:var(--text3);min-width:70px">${type}</span>
+          <span style="font-size:13px;font-weight:500;color:var(--text);flex:1;margin-left:8px">${best[0]}</span>
+          ${dots?`<div style="display:flex;gap:2px;margin-right:6px">${dots}</div>`:''}
+          <span style="font-size:11px;color:var(--text3)">${best[1]}×</span>
+        </div>`;
+      }).filter(Boolean).join('');
+      if(!typeRows)return'';
+      return `<div style="margin-bottom:10px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px">${bucket}</div>
+        ${typeRows}
+      </div>`;
+    }).filter(Boolean).join('');
+    if(!bucketBlocks)return'';
+    return `<div class="analyse-block" style="margin-bottom:1rem">
+      <div class="analyse-block-title">${occ}</div>
+      ${bucketBlocks}
+    </div>`;
+  }).filter(Boolean).join('');
+
+  cont.innerHTML=sections||'<div class="empty" style="text-align:center;padding:3rem 1rem;color:var(--text3)">Ikke nok gjentatt bruk ennå til å se et tydelig mønster. Fortsett å logge!</div>';
 }
 
 function renderHjem(){
@@ -2674,8 +2739,7 @@ function renderHjem(){
   const lastOutfit=sortedOutfits[0];
   const lastDate=lastOutfit?formatDate(lastOutfit.date):'–';
 
-  // ── Mest brukte plagg per anledning, brutt ned på temperaturgruppe ────────
-  // Temperaturgrupper: Kaldt (Iskaldt-Kjølig), Mildt (Mildt-Linnt), Varmt (Varmt-Glovarmt)
+  // ── Plaggbruk-statistikk (brukes til "Mest anvendelige plagg") ────────────
   const TEMP_BUCKETS={'Kaldt':[0,1,2],'Mildt':[3,4],'Varmt':[5,6]};
   const plaggCount={};
   outfits.forEach(o=>(o.plagg||[]).forEach(p=>{
@@ -2689,35 +2753,6 @@ function renderHjem(){
       plaggCount[p.naam].occTemp[key]=(plaggCount[p.naam].occTemp[key]||0)+1;
     }
   }));
-
-  const mostUsedByOcc={};
-  allOcc().forEach(occ=>{
-    Object.keys(TEMP_BUCKETS).forEach(bucket=>{
-      const key=occ+'|'+bucket;
-      let best=null,bestCount=0;
-      Object.entries(plaggCount).forEach(([naam,data])=>{
-        if(data.total>=3&&(data.occTemp[key]||0)>bestCount){
-          bestCount=data.occTemp[key];
-          best={naam,count:bestCount};
-        }
-      });
-      if(best){
-        if(!mostUsedByOcc[occ])mostUsedByOcc[occ]=[];
-        mostUsedByOcc[occ].push({bucket,...best});
-      }
-    });
-  });
-
-  const mostUsedRows=Object.entries(mostUsedByOcc).map(([occ,buckets])=>`
-    <div style="padding:6px 0;border-bottom:0.5px solid var(--border)">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:3px">${occ}</div>
-      ${buckets.map(b=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0 2px 8px">
-        <span style="font-size:11px;color:var(--text3);min-width:50px">${b.bucket}</span>
-        <span style="font-size:13px;font-weight:500;color:var(--text);flex:1;text-align:left;margin-left:6px">${b.naam}</span>
-        <span style="font-size:11px;color:var(--text3)">${b.count}×</span>
-      </div>`).join('')}
-    </div>`
-  ).join('');
 
   // ── Mest anvendelige plagg per plaggtype — vekter anledninger og temperaturbredde ────
   const versatile={};
@@ -2769,11 +2804,6 @@ function renderHjem(){
           <button class="btn-ghost" onclick="document.querySelector('.nav button:nth-child(6)').click()">Ny pakkeliste</button>
         </div>
       </div>
-
-      ${mostUsedRows?`<details style="margin-bottom:1rem">
-        <summary style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3);cursor:pointer;padding:6px 0;border-top:0.5px solid var(--border)">Mest brukt per anledning</summary>
-        <div style="margin-top:8px">${mostUsedRows}</div>
-      </details>`:''}
 
       ${versatileRows?`<details style="margin-bottom:1rem">
         <summary style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3);cursor:pointer;padding:6px 0;border-top:0.5px solid var(--border)">Mest anvendelige plagg</summary>
