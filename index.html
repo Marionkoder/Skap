@@ -112,7 +112,10 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
 .bar-count{width:22px;color:var(--text3);font-size:11px;text-align:right;}
 .divider{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin:1.3rem 0 0.6rem;}
 .analyse-block{border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.1rem;margin-bottom:1.2rem;}
-.analyse-block-title{font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em;color:var(--text2);margin-bottom:1rem;padding-bottom:0.6rem;border-bottom:0.5px solid var(--border);}
+.analyse-block summary::-webkit-details-marker{display:none;}
+.analyse-block[open] summary span{transform:rotate(90deg);display:inline-block;}
+.sticky-col{position:sticky;left:0;z-index:1;background:var(--bg2);}
+
 .alert{padding:9px 13px;border-radius:var(--radius);font-size:13px;margin-bottom:0.8rem;}
 .alert-ok{background:var(--success-bg);color:var(--success-text);}
 .alert-warn{background:var(--warn-bg);color:var(--warn-text);}
@@ -336,8 +339,8 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
   </div>
   <div class="field">
     <label>Plagg</label>
-    <div id="log-plagg-container"></div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px" id="log-plagg-btns"></div>
+    <div id="log-plagg-selected" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+    <div id="log-plagg-picker"></div>
   </div>
   <br>
   <div class="field">
@@ -392,41 +395,53 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
 
 <!-- ANALYSE -->
 <div class="section" id="tab-analyse">
-  <div class="analyse-block">
-    <div class="analyse-block-title">Loggede antrekk</div>
-    <div class="stats-grid" id="stats-cards-log"></div>
 
-    <div class="divider">Fargeprofil</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:0.5rem">
-      <div>
-        <div style="font-size:11px;color:var(--text3);text-align:center;margin-bottom:6px">Loggede antrekk</div>
-        <canvas id="pie-color-log" width="140" height="140" style="display:block;margin:0 auto"></canvas>
-        <div id="pie-color-log-legend" style="margin-top:8px"></div>
+  <details class="analyse-block" open>
+    <summary class="analyse-block-title" style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center">
+      Farger du bruker <span style="font-size:16px;color:var(--text3)">›</span>
+    </summary>
+    <div style="margin-top:1rem">
+      <div id="stats-cards-log" class="stats-grid"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:1rem">
+        <div>
+          <div style="font-size:11px;color:var(--text3);text-align:center;margin-bottom:6px">Loggede antrekk</div>
+          <canvas id="pie-color-log" width="130" height="130" style="display:block;margin:0 auto"></canvas>
+          <div id="pie-color-log-legend" style="margin-top:8px;font-size:11px"></div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text3);text-align:center;margin-bottom:6px">Registrerte plagg</div>
+          <canvas id="pie-color-all" width="130" height="130" style="display:block;margin:0 auto"></canvas>
+          <div id="pie-color-all-legend" style="margin-top:8px;font-size:11px"></div>
+        </div>
       </div>
-      <div>
-        <div style="font-size:11px;color:var(--text3);text-align:center;margin-bottom:6px">Registrerte plagg</div>
-        <canvas id="pie-color-all" width="140" height="140" style="display:block;margin:0 auto"></canvas>
-        <div id="pie-color-all-legend" style="margin-top:8px"></div>
+      <div id="gap-analysis" style="margin-top:1rem"></div>
+    </div>
+  </details>
+
+  <details class="analyse-block">
+    <summary class="analyse-block-title" style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center">
+      Anledninger og vær <span style="font-size:16px;color:var(--text3)">›</span>
+    </summary>
+    <div style="margin-top:0.8rem">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:0.8rem">Anledning × temperatur. Trykk en celle for detaljer.</p>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <table id="wardrobe-matrix" style="border-collapse:collapse;font-size:12px;min-width:100%"></table>
       </div>
     </div>
+  </details>
 
-    <div id="gap-analysis" style="margin-top:1rem"></div>
-  </div>
-  <div class="analyse-block">
-    <div class="analyse-block-title">Antrekksmatrise</div>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:0.8rem">Anledning × temperatur. Vanlig = logget, <em style="color:var(--text3)">kursiv</em> = planlagt. Trykk en celle for detaljer.</p>
-    <div style="overflow-x:auto"><table id="wardrobe-matrix" style="width:100%;border-collapse:collapse;font-size:12px"></table></div>
-  </div>
-  <div class="analyse-block">
-    <div class="analyse-block-title">Anledningsheatmap</div>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:0.8rem">Plaggtype × anledning. Hver celle viser antall registrerte plagg per temperaturkategori — blått for kaldt, rødt for varmt.</p>
-    <div style="overflow-x:auto"><table id="occasion-heatmap" style="width:100%;border-collapse:collapse;font-size:12px"></table></div>
-  </div>
-  <div class="analyse-block">
-    <div class="analyse-block-title">Fargekart — loggede antrekk</div>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:0.8rem">Farger brukt i loggede antrekk, per anledning og temperatur. Trykk en celle for detaljer.</p>
-    <div style="overflow-x:auto"><table id="color-heatmap" style="width:100%;border-collapse:collapse;font-size:12px"></table></div>
-  </div>
+  <details class="analyse-block">
+    <summary class="analyse-block-title" style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center">
+      Hva du har til hver anledning <span style="font-size:16px;color:var(--text3)">›</span>
+    </summary>
+    <div style="margin-top:0.8rem">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:0.8rem">Plaggtype × anledning, med antall per temperatur. Basert på registrerte plagg.</p>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <table id="occasion-heatmap" style="border-collapse:collapse;font-size:12px;min-width:100%"></table>
+      </div>
+    </div>
+  </details>
+
 </div>
 
 <!-- INSPIRASJON -->
@@ -454,8 +469,8 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
     </div>
     <div class="field">
       <label>Plagg</label>
-      <div id="sm-plagg-container"></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px" id="sm-plagg-btns"></div>
+      <div id="sm-plagg-selected" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+      <div id="sm-plagg-picker"></div>
       <div id="sm-register-browser" style="margin-top:10px"></div>
     </div>
     <div class="field"><label>Notater (valgfritt)</label><textarea id="sm-notes" rows="2" style="resize:vertical"></textarea></div>
@@ -481,8 +496,8 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
     </div>
     <div class="field">
       <label>Plagg</label>
-      <div id="em-plagg-container"></div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px" id="em-plagg-btns"></div>
+      <div id="em-plagg-selected" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+      <div id="em-plagg-picker"></div>
     </div>
     <div class="field"><label>Notater</label><textarea id="em-notes" rows="2" style="resize:vertical"></textarea></div>
     <div class="modal-btns">
@@ -499,7 +514,10 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
     <div class="field"><label>Navn / tittel</label><input type="text" id="rm-navn"></div>
     <div class="field"><label>Beskrivelse (valgfritt)</label><textarea id="rm-besk" rows="2" style="resize:vertical;font-size:13px"></textarea></div>
     <div class="field"><label>Type</label>
-      <select id="rm-type" onchange="updateFitOptions()"><option>Overdel</option><option>Underdel</option><option>Ytterlag</option><option>Sko</option><option>Tilbehør</option><option>Helfigur</option><option>Smykker</option></select>
+      <select id="rm-type" onchange="updateRmSubtype();updateFitOptions()"><option>Overdel</option><option>Underdel</option><option>Ytterlag</option><option>Sko</option><option>Tilbehør</option><option>Helfigur</option><option>Smykker</option></select>
+    </div>
+    <div class="field"><label>Undertype</label>
+      <select id="rm-subtype"></select>
     </div>
     <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div><label>Status</label>
@@ -677,11 +695,11 @@ function saveAarstype(v){aarstype=v;try{localStorage.setItem('skap_aarstype',v);
 const FARGE_KAT={
   'Hvit og beige':[{n:'Hvit',h:'#FFFFFF'},{n:'Kremhvit',h:'#FAF6EF'},{n:'Lys beige',h:'#F0E8D9'}],
   'Rød':[{n:'Jordbærrød',h:'#EA1F41'},{n:'Tomatrød',h:'#E04535'},{n:'Rustrød',h:'#9E2415'},{n:'Vinrød',h:'#8B1030'}],
-  'Rosa og fersken':[{n:'Pudderrosa',h:'#FAE0E4'},{n:'Gammelrosa',h:'#D47D7F'},{n:'Lys lakserosa',h:'#EAA898'},{n:'Fuchsia',h:'#FF2D98'},{n:'Cerise',h:'#E8155A'}],
+  'Rosa og fersken':[{n:'Pudderrosa',h:'#FAE0E4'},{n:'Gammelrosa',h:'#D47D7F'},{n:'Lys lakserosa',h:'#EAA898'},{n:'Lakserosa',h:'#F08070'},{n:'Fuchsia',h:'#FF2D98'},{n:'Cerise',h:'#E8155A'}],
   'Oransje og gul':[{n:'Oransje',h:'#DC7038'},{n:'Lysegul',h:'#F5EFA0'}],
-  'Blå':[{n:'Nattblå',h:'#071932'},{n:'Varm blå',h:'#4A7FA0'},{n:'Frisk blå',h:'#5A88B8'},{n:'Himmelblå',h:'#2A90D0'},{n:'Bondeblå',h:'#4A7888'},{n:'Lys bondeblå',h:'#80B0B8'}],
+  'Blå':[{n:'Nattblå',h:'#071932'},{n:'Mørk jeansblå',h:'#2A4870'},{n:'Varm blå',h:'#4A7FA0'},{n:'Frisk blå',h:'#5A88B8'},{n:'Himmelblå',h:'#2A90D0'},{n:'Bondeblå',h:'#4A7888'},{n:'Lys bondeblå',h:'#80B0B8'}],
   'Grønn':[{n:'Pistasjgrønn',h:'#C8D9A8'},{n:'Mintgrønn',h:'#7DD4B0'},{n:'Gressgrønn',h:'#61A85A'},{n:'Mørk gressgrønn',h:'#357A42'},{n:'Grangrønn',h:'#235A2E'},{n:'Sjøgrønn',h:'#167065'},{n:'Olivengrønn',h:'#6B7A2A'}],
-  'Brun':[{n:'Mørkebrun',h:'#4d2600'},{n:'Lærbrun',h:'#C57E4B'}],
+  'Brun':[{n:'Mørkebrun',h:'#4d2600'},{n:'Mokkabrun',h:'#8B7068'},{n:'Lærbrun',h:'#C57E4B'},{n:'Mørk kamel',h:'#A8845A'},{n:'Kamel',h:'#C19A6B'}],
   'Metall':[{n:'Gull',h:'#C5A028',metal:true},{n:'Sølv',h:'#DFDFDF',metal:true}],
   'Grå og svart':[{n:'Mellomgrå',h:'#808080'},{n:'Grå',h:'#A9A9A9'},{n:'Svart',h:'#000000'}],
 };
@@ -700,6 +718,15 @@ function catSq(c,size=13){
 
 const TEMP_CATS=["Iskaldt","Kaldt","Kjølig","Mildt","Linnt","Varmt","Glovarmt"];
 const PLAGG_TYPER=['Overdel','Underdel','Ytterlag','Sko','Tilbehør','Helfigur','Smykker'];
+const PLAGG_SUBTYPER={
+  'Overdel':['Bluse','Genser','Jakke','Singlet','Skjorte','T-skjorte','Topp','Treningstopp'],
+  'Underdel':['Bukse','Shorts','Skjørt','Tights','Treningsbukse'],
+  'Ytterlag':['Boblejakke','Kåpe','Mellomlagsjakke','Skalljakke'],
+  'Sko':['Gummistøvler','Joggesko','Pensko','Sandaler','Skisko','Tøysko','Vintersko','Våtsko'],
+  'Helfigur':['Buksedress','Kjole','Våtdrakt'],
+  'Smykker':['Armbånd','Brosje','Halskjede','Mansjettknapper','Ring','Øredobber'],
+  'Tilbehør':['Belte','Hansker','Lue','Sjal','Skjerf','Veske','Votter'],
+};
 const STD_OCC=['Hverdag','Lett pyntet','Fest','Høytidelig','Friluftsliv','Trening','Jobb'];
 
 let outfits=[],scenarios=[],register=[],customOcc=[];
@@ -1010,6 +1037,106 @@ function addPlaggItem(containerEl,type,context,existingData){
   }
   sect.querySelector('.plagg-items').appendChild(item);
 }
+// ── HIERARCHICAL PLAGG PICKER ────────────────────────────────────────────────
+const pickerState={};
+
+function initPlaggPicker(context){
+  pickerState[context]={type:null,subtype:null,selected:[]};
+  const sel=document.getElementById(context+'-plagg-selected');if(sel)sel.innerHTML='';
+  renderPlaggPicker(context);
+}
+function initPlaggPickerWithData(context,plaggList){
+  pickerState[context]={type:null,subtype:null,selected:plaggList.map(p=>({...p,_id:Date.now()+Math.random()}))};
+  renderPlaggPickerSelected(context);
+  renderPlaggPicker(context);
+}
+function renderPlaggPickerSelected(context){
+  const cont=document.getElementById(context+'-plagg-selected');if(!cont)return;
+  const sel=pickerState[context]?.selected||[];
+  if(!sel.length){cont.innerHTML='';return;}
+  cont.innerHTML=sel.map(p=>{
+    const dots=(p.colors||[]).map(c=>catSq(c,12)).join('');
+    return`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg2);border-radius:var(--radius);font-size:13px">
+      ${dots?`<div style="display:flex;gap:2px">${dots}</div>`:''}
+      <div style="flex:1">
+        <span style="font-weight:500">${p.naam||p.subtype||p.type}</span>
+        <span style="font-size:11px;color:var(--text3);margin-left:5px">${p.subtype?p.type+' / '+p.subtype:p.type}</span>
+        ${p.besk?`<div style="font-size:11px;color:var(--text3)">${p.besk}</div>`:''}
+      </div>
+      <button onclick="removePlaggPickerItem('${context}','${p._id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:0 4px;line-height:1">×</button>
+    </div>`;
+  }).join('');
+}
+function removePlaggPickerItem(context,id){
+  const st=pickerState[context];if(!st)return;
+  st.selected=st.selected.filter(p=>String(p._id)!==id);
+  renderPlaggPickerSelected(context);
+}
+function renderPlaggPicker(context){
+  const cont=document.getElementById(context+'-plagg-picker');if(!cont)return;
+  const st=pickerState[context]||{};
+  let html=`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">`;
+  PLAGG_TYPER.forEach(t=>{
+    html+=`<button class="reg-filter-btn${st.type===t?' active':''}" style="font-size:12px" onclick="setPlaggPickerType('${context}','${t}')">${t}</button>`;
+  });
+  html+=`</div>`;
+  if(st.type){
+    const subs=PLAGG_SUBTYPER[st.type]||[];
+    if(subs.length){
+      html+=`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">`;
+      subs.forEach(s=>{
+        html+=`<button class="reg-filter-btn${st.subtype===s?' active':''}" style="font-size:11px;padding:3px 10px" onclick="setPlaggPickerSubtype('${context}','${s}')">${s}</button>`;
+      });
+      html+=`</div>`;
+    }
+    if(st.subtype||!subs.length){
+      const matches=register.filter(r=>r.type===st.type&&(!st.subtype||!r.subtype||r.subtype===st.subtype));
+      html+=`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">`;
+      matches.forEach(r=>{
+        const dots=(r.colors||[]).map(c=>catSq(c,11)).join('');
+        const primary=(r.colors||[]).find(c=>c.primary)||(r.colors||[])[0];
+        const bg=primary?primary.h+'22':'var(--bg2)';
+        const border=primary?primary.h:'var(--border2)';
+        html+=`<button onclick="addPlaggPickerItem('${context}','${r.id}')" style="display:flex;align-items:center;gap:5px;background:${bg};border:1px solid ${border};border-radius:var(--radius);padding:6px 10px;cursor:pointer;font-size:12px;color:var(--text)">${dots?`<div style="display:flex;gap:2px">${dots}</div>`:''} ${r.naam}</button>`;
+      });
+      html+=`<button onclick="addPlaggPickerNew('${context}')" style="background:none;border:0.5px dashed var(--border2);border-radius:var(--radius);padding:6px 10px;cursor:pointer;font-size:12px;color:var(--text3)">+ Nytt plagg</button></div>`;
+      html+=`<div id="${context}-plagg-new-form" style="display:none;background:var(--bg2);border-radius:var(--radius);padding:10px;margin-top:4px">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:6px">${st.type}${st.subtype?' / '+st.subtype:''}</div>
+        <input type="text" id="${context}-plagg-new-navn" placeholder="Navn…" style="margin-bottom:6px">
+        <textarea id="${context}-plagg-new-besk" placeholder="Beskrivelse (valgfritt)" rows="1" style="resize:vertical;font-size:12px;margin-bottom:6px"></textarea>
+        <button class="btn-primary" style="margin-top:0;padding:8px" onclick="confirmPlaggPickerNew('${context}')">Legg til</button>
+      </div>`;
+    }
+  }
+  cont.innerHTML=html;
+}
+function setPlaggPickerType(context,type){const st=pickerState[context];if(!st)return;st.type=type;st.subtype=null;renderPlaggPicker(context);}
+function setPlaggPickerSubtype(context,sub){const st=pickerState[context];if(!st)return;st.subtype=sub;renderPlaggPicker(context);}
+function addPlaggPickerItem(context,regId){
+  const st=pickerState[context];if(!st)return;
+  const r=register.find(x=>String(x.id)===String(regId));if(!r)return;
+  st.selected.push({_id:Date.now()+Math.random(),type:r.type,subtype:r.subtype||null,naam:r.naam,besk:r.besk||'',colors:r.colors||[]});
+  renderPlaggPickerSelected(context);
+}
+function addPlaggPickerNew(context){
+  const form=document.getElementById(context+'-plagg-new-form');
+  if(form)form.style.display=form.style.display==='none'?'block':'none';
+}
+function confirmPlaggPickerNew(context){
+  const st=pickerState[context];if(!st)return;
+  const navn=document.getElementById(context+'-plagg-new-navn')?.value.trim();
+  if(!navn)return;
+  const besk=document.getElementById(context+'-plagg-new-besk')?.value.trim()||'';
+  st.selected.push({_id:Date.now()+Math.random(),type:st.type,subtype:st.subtype||null,naam,besk,colors:[]});
+  if(!register.find(r=>r.naam.toLowerCase()===navn.toLowerCase()&&r.type===st.type)){
+    register.push({id:Date.now(),naam,besk,type:st.type,subtype:st.subtype||null,status:'I skapet',colors:[],temps:[],occasions:[]});
+    saveData();
+  }
+  renderPlaggPickerSelected(context);renderPlaggPicker(context);
+}
+function collectPlaggFromPicker(context){
+  return(pickerState[context]?.selected||[]).map(p=>({type:p.type,subtype:p.subtype||null,naam:p.naam,besk:p.besk||'',colors:p.colors||[]}));
+}
 function initPlaggBtns(containerEl,btnsEl,context){
   btnsEl.innerHTML='';
   PLAGG_TYPER.forEach(type=>{
@@ -1018,6 +1145,7 @@ function initPlaggBtns(containerEl,btnsEl,context){
   });
 }
 function collectPlagg(context){
+  if(pickerState[context])return collectPlaggFromPicker(context);
   const cid=context==='log'?'log-plagg-container':context==='sm'?'sm-plagg-container':'em-plagg-container';
   const result=[];
   document.querySelectorAll(`#${cid} .plagg-item`).forEach(item=>{
@@ -1032,8 +1160,13 @@ function collectPlagg(context){
   return result;
 }
 function clearPlaggContainer(context){
+  if(pickerState[context]){
+    pickerState[context]={type:null,subtype:null,selected:[]};
+    const sel=document.getElementById(context+'-plagg-selected');if(sel)sel.innerHTML='';
+    renderPlaggPicker(context);return;
+  }
   const cid=context==='log'?'log-plagg-container':context==='sm'?'sm-plagg-container':'em-plagg-container';
-  document.getElementById(cid).innerHTML='';
+  const el=document.getElementById(cid);if(el)el.innerHTML='';
   Object.keys(colorInstances).forEach(k=>{if(k.startsWith(context+'-'))delete colorInstances[k];});
   plaggCounters[context]={};
 }
@@ -1052,7 +1185,7 @@ function saveOutfit(){
   showMsg('save-msg','✓ Antrekk lagret!','ok');
   document.getElementById('log-notes').value='';
   document.getElementById('temp-slider').value=3;updateTemp(3,'temp-cat-label');
-  clearPlaggContainer('log');
+  initPlaggPicker('log');
 }
 
 // ── HISTORIKK ─────────────────────────────────────────────────────────────────
@@ -1092,11 +1225,7 @@ function openEditModal(id){
   document.getElementById('em-temp').value=o.temp;
   updateTemp(o.temp,'em-temp-label');
   document.getElementById('em-notes').value=o.notes||'';
-  clearPlaggContainer('em');
-  const cont=document.getElementById('em-plagg-container');
-  const btns=document.getElementById('em-plagg-btns');
-  initPlaggBtns(cont,btns,'em');
-  (o.plagg||[]).forEach(p=>addPlaggItem(cont,p.type,'em',p));
+  initPlaggPickerWithData('em',o.plagg||[]);
   document.getElementById('edit-modal').classList.add('open');
 }
 function closeEditModal(){document.getElementById('edit-modal').classList.remove('open');clearPlaggContainer('em');editingOutfitId=null;}
@@ -1187,11 +1316,7 @@ function openNewScenarioModal(){
   document.getElementById('sm-notes').value='';
   renderSmOccBtns([]);
   renderSmTempBtns([]);
-  clearPlaggContainer('sm');
-  const cont=document.getElementById('sm-plagg-container');
-  const btns=document.getElementById('sm-plagg-btns');
-  initPlaggBtns(cont,btns,'sm');
-  renderSmRegisterBrowser();
+  initPlaggPicker('sm');
   document.getElementById('scenario-modal').classList.add('open');
 }
 function openEditScenarioModal(id){
@@ -1202,12 +1327,7 @@ function openEditScenarioModal(id){
   document.getElementById('sm-notes').value=s.notes||'';
   renderSmOccBtns(s.occasions||[s.occasion].filter(Boolean));
   renderSmTempBtns(s.temps||[s.temp].filter(t=>t!=null));
-  clearPlaggContainer('sm');
-  const cont=document.getElementById('sm-plagg-container');
-  const btns=document.getElementById('sm-plagg-btns');
-  initPlaggBtns(cont,btns,'sm');
-  (s.plagg||[]).forEach(p=>addPlaggItem(cont,p.type,'sm',p));
-  renderSmRegisterBrowser();
+  initPlaggPickerWithData('sm',s.plagg||[]);
   document.getElementById('scenario-modal').classList.add('open');
 }
 function closeScenarioModal(){document.getElementById('scenario-modal').classList.remove('open');clearPlaggContainer('sm');editingScenarioId=null;}
@@ -1285,7 +1405,7 @@ function renderRegister(){
     const dots=(r.colors||[]).map(c=>catSq(c)).join('');
     const uses=usageCount(r.naam);
     return `<div class="reg-item">
-      <span class="reg-item-type">${r.type}</span>
+      <span class="reg-item-type">${r.type}${r.subtype?`<span style="font-weight:400;color:var(--text3)"> / ${r.subtype}</span>`:''}</span>
       <div style="flex:1;min-width:100px">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           <span style="font-weight:500">${r.naam}</span>
@@ -1335,6 +1455,12 @@ function renderRegOccasions(selected){
 function getRegOccasions(){
   return [...document.querySelectorAll('#rm-occasions input[type=checkbox]:checked')].map(cb=>cb.value);
 }
+function updateRmSubtype(selected){
+  const type=document.getElementById('rm-type')?.value;
+  const sel=document.getElementById('rm-subtype');if(!sel)return;
+  const subs=PLAGG_SUBTYPER[type]||[];
+  sel.innerHTML=`<option value="">– Ingen undertype –</option>`+subs.map(s=>`<option value="${s}"${s===selected?' selected':''}>${s}</option>`).join('');
+}
 function updateFitOptions(fit){
   const type=document.getElementById('rm-type')?.value;
   const sel=document.getElementById('rm-fit');if(!sel)return;
@@ -1353,6 +1479,7 @@ function openAddRegModal(){
   document.getElementById('rm-type').value='Overdel';
   document.getElementById('rm-status').value='I skapet';
   document.getElementById('rm-replace').checked=false;
+  updateRmSubtype();
   updateFitOptions();
   renderRegTempCheckboxes([]);
   renderRegOccasions([]);
@@ -1372,6 +1499,7 @@ function openEditRegModal(id){
   document.getElementById('rm-type').value=r.type;
   document.getElementById('rm-status').value=r.status;
   document.getElementById('rm-replace').checked=r.mustReplace||false;
+  updateRmSubtype(r.subtype||'');
   updateFitOptions(r.fit||'');
   renderRegTempCheckboxes(r.temps||[]);
   renderRegOccasions(r.occasions||[]);
@@ -1392,11 +1520,12 @@ function saveRegItem(){
   const occasions=getRegOccasions();
   const mustReplace=document.getElementById('rm-replace').checked;
   const fit=document.getElementById('rm-fit').value||null;
+  const subtype=document.getElementById('rm-subtype').value||null;
   if(editingRegId){
     const r=register.find(x=>x.id==editingRegId);
-    if(r){r.naam=naam;r.besk=besk;r.type=document.getElementById('rm-type').value;r.status=document.getElementById('rm-status').value;r.colors=colors;r.temps=temps;r.occasions=occasions;r.mustReplace=mustReplace;r.fit=fit;}
+    if(r){r.naam=naam;r.besk=besk;r.type=document.getElementById('rm-type').value;r.subtype=subtype;r.status=document.getElementById('rm-status').value;r.colors=colors;r.temps=temps;r.occasions=occasions;r.mustReplace=mustReplace;r.fit=fit;}
   } else {
-    register.push({id:Date.now(),naam,besk,type:document.getElementById('rm-type').value,status:document.getElementById('rm-status').value,colors,temps,occasions,mustReplace,fit});
+    register.push({id:Date.now(),naam,besk,type:document.getElementById('rm-type').value,subtype,status:document.getElementById('rm-status').value,colors,temps,occasions,mustReplace,fit});
   }
   saveData();closeRegModal();renderRegister();
 }
@@ -1868,7 +1997,6 @@ function renderAnalyse(){
 
   // — REGISTER / MATRIX BLOCK —
   buildWardrobeMatrix();
-  buildColorHeatmap();
   buildOccasionHeatmap();
 }
 
@@ -1921,12 +2049,12 @@ function buildWardrobeMatrix(){
   const tdBase='padding:0;border:0.5px solid var(--border);text-align:center;vertical-align:middle;cursor:pointer;min-width:44px;height:44px;position:relative;';
 
   let html='<thead><tr>';
-  html+=`<th style="${thStyle}background:var(--bg3)"></th>`;
+  html+=`<th style="${thStyle}background:var(--bg3)" class="sticky-col"></th>`;
   temps.forEach(t=>html+=`<th style="${thStyle}">${TEMP_CATS[t].split(' ')[0]}</th>`);
   html+='</tr></thead><tbody>';
 
   occs.forEach(occ=>{
-    html+=`<tr><td style="${thStyle}text-align:left;padding:6px 10px">${occ}</td>`;
+    html+=`<tr><td style="${thStyle}text-align:left;padding:6px 10px" class="sticky-col">${occ}</td>`;
     temps.forEach(t=>{
       const key=occ+'_'+t;
       const cell=cells[key];
@@ -2401,10 +2529,7 @@ function fillFromScenario(scenarioId){
     updateTemp(s.temp,'temp-cat-label');
   }
   // Clear and fill plagg
-  clearPlaggContainer('log');
-  const cont=document.getElementById('log-plagg-container');
-  const btns=document.getElementById('log-plagg-btns');
-  initPlaggBtns(cont,btns,'log');
+  if(!pickerState['log'])initPlaggPicker('log');
   (s.plagg||[]).forEach(p=>addPlaggItem(cont,p.type,'log',p));
   // Close the picker
   document.getElementById('log-scenario-picker').removeAttribute('open');
@@ -2452,12 +2577,12 @@ function buildColorHeatmap(){
   const tdBase='padding:4px;border:0.5px solid var(--border);vertical-align:middle;cursor:pointer;min-width:44px;';
 
   let html='<thead><tr>';
-  html+=`<th style="${thStyle}background:var(--bg3)"></th>`;
+  html+=`<th style="${thStyle}background:var(--bg3)" class="sticky-col"></th>`;
   temps.forEach(t=>html+=`<th style="${thStyle}">${TEMP_CATS[t].split(' ')[0]}</th>`);
   html+='</tr></thead><tbody>';
 
   occs.forEach(occ=>{
-    html+=`<tr><td style="${thStyle}text-align:left;padding:6px 10px">${occ}</td>`;
+    html+=`<tr><td style="${thStyle}text-align:left;padding:6px 10px" class="sticky-col">${occ}</td>`;
     temps.forEach(t=>{
       const key=occ+'_'+t;
       const cell=cells[key];
@@ -2515,12 +2640,12 @@ function buildOccasionHeatmap(){
   const tdBase='padding:6px 8px;border:0.5px solid var(--border);vertical-align:top;min-width:80px;cursor:pointer;';
 
   let html='<thead><tr>';
-  html+=`<th style="${thStyle}text-align:left;background:var(--bg3)">Temperatur</th>`;
+  html+=`<th style="${thStyle}text-align:left;background:var(--bg3)" class="sticky-col">Temperatur</th>`;
   occs.forEach(o=>html+=`<th style="${thStyle}">${o}</th>`);
   html+='</tr></thead><tbody>';
 
   temps.forEach(t=>{
-    html+=`<tr><td style="${thStyle}text-align:left;padding:6px 10px;background:var(--bg2)">${TEMP_CATS[t]}</td>`;
+    html+=`<tr><td style="${thStyle}text-align:left;padding:6px 10px;background:var(--bg2)" class="sticky-col">${TEMP_CATS[t]}</td>`;
     occs.forEach(occ=>{
       const cell=(data[t]||{})[occ];
       if(!cell){
@@ -2853,7 +2978,7 @@ function showImportMsg(txt,type){
 loadData();
 document.getElementById('log-date').value=new Date().toISOString().split('T')[0];
 refreshOccSelects();
-initPlaggBtns(document.getElementById('log-plagg-container'),document.getElementById('log-plagg-btns'),'log');
+initPlaggPicker('log');
 renderHjem();
 </script>
 </body>
