@@ -401,7 +401,7 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
 <!-- ANALYSE -->
 <div class="section" id="tab-analyse">
 
-  <details class="analyse-block" open>
+  <details class="analyse-block" open ontoggle="if(this.open)renderAnalyse()">
     <summary class="analyse-block-title" style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center">
       Farger du bruker <span style="font-size:16px;color:var(--text3)">›</span>
     </summary>
@@ -1786,82 +1786,75 @@ function barChart(entries,maxVal,colorMap){
 function drawColorBarChart(canvasId, logColors, regColors){
   const canvas=document.getElementById(canvasId);
   if(!canvas)return;
-  const ctx=canvas.getContext('2d');
 
-  // Count per FARGE_KAT category
+  // Count per FARGE_KAT category (exclude neutral)
   const cats=Object.keys(FARGE_KAT).filter(k=>k!=='Hvit og beige'&&k!=='Grå og svart'&&k!=='Metall');
   const regCount={}, logCount={};
   cats.forEach(k=>{regCount[k]=0;logCount[k]=0;});
-
-  regColors.forEach(c=>{
-    const k=katForShade(c.n);
-    if(k&&regCount[k]!==undefined)regCount[k]++;
-  });
-  logColors.forEach(c=>{
-    const k=katForShade(c.n);
-    if(k&&logCount[k]!==undefined)logCount[k]++;
-  });
-
-  // Filter to only cats with data
+  regColors.forEach(c=>{const k=katForShade(c.n);if(k&&regCount[k]!==undefined)regCount[k]++;});
+  logColors.forEach(c=>{const k=katForShade(c.n);if(k&&logCount[k]!==undefined)logCount[k]++;});
   const activeCats=cats.filter(k=>regCount[k]>0||logCount[k]>0);
+
   if(!activeCats.length){
-    ctx.fillStyle='var(--text3)';
-    ctx.font='12px system-ui';
+    canvas.width=300;canvas.height=60;
+    const ctx=canvas.getContext('2d');
+    ctx.fillStyle='#aaa';ctx.font='13px system-ui';ctx.textBaseline='middle';
     ctx.fillText('Ingen fargedata ennå',10,30);
     return;
   }
 
+  const barW=18, barGap=4, groupGap=12;
+  const padTop=16, padBottom=52, padLeft=28, padRight=10;
+  const chartH=120;
+  const H=padTop+chartH+padBottom;
+  const W=padLeft+activeCats.length*(barW*2+barGap+groupGap)+padRight;
+
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
   const maxVal=Math.max(...activeCats.flatMap(k=>[regCount[k],logCount[k]]),1);
-  const barW=22, gap=6, groupGap=14;
-  const totalW=activeCats.length*(barW*2+gap+groupGap);
-  const H=180, padTop=10, padBottom=50, padLeft=24;
-  const chartH=H-padTop-padBottom;
 
-  canvas.width=Math.max(totalW+padLeft+20, canvas.parentElement?.offsetWidth||300);
-  canvas.height=H;
-  ctx.clearRect(0,0,canvas.width,H);
-
-  // Y axis labels
-  ctx.fillStyle='#aaa';ctx.font='10px system-ui';ctx.textAlign='right';
-  [0,Math.ceil(maxVal/2),maxVal].forEach(v=>{
+  // Y gridlines and labels
+  const ySteps=[0, Math.ceil(maxVal/2), maxVal];
+  ySteps.forEach(v=>{
     const y=padTop+chartH-(v/maxVal)*chartH;
-    ctx.fillText(v,padLeft-4,y+4);
+    ctx.fillStyle='#999';ctx.font='10px system-ui';ctx.textAlign='right';ctx.textBaseline='middle';
+    ctx.fillText(v,padLeft-4,y);
     ctx.beginPath();ctx.strokeStyle='#e0e0d8';ctx.lineWidth=0.5;
-    ctx.moveTo(padLeft,y);ctx.lineTo(canvas.width-10,y);ctx.stroke();
+    ctx.moveTo(padLeft,y);ctx.lineTo(W-padRight,y);ctx.stroke();
   });
 
   activeCats.forEach((kat,i)=>{
-    const x=padLeft+i*(barW*2+gap+groupGap);
+    const x=padLeft+i*(barW*2+barGap+groupGap);
     const reg=regCount[kat], log=logCount[kat];
+    const repColor=(FARGE_KAT[kat]||[]).find(s=>!isNeutral(s.h))?.h||'#888';
 
-    // Pick representative color for this category
-    const shades=FARGE_KAT[kat]||[];
-    const repColor=shades.find(s=>!isNeutral(s.h))?.h||'#888';
+    // Registered bar (lighter)
+    if(reg>0){
+      const bh=(reg/maxVal)*chartH;
+      ctx.globalAlpha=0.4;ctx.fillStyle=repColor;
+      ctx.fillRect(x,padTop+chartH-bh,barW,bh);
+      ctx.globalAlpha=1;
+      ctx.fillStyle='#666';ctx.font='10px system-ui';ctx.textAlign='center';ctx.textBaseline='bottom';
+      ctx.fillText(reg,x+barW/2,padTop+chartH-bh-2);
+    }
 
-    // Registered bar (with opacity)
-    const regH=(reg/maxVal)*chartH;
-    ctx.globalAlpha=0.45;
-    ctx.fillStyle=repColor;
-    ctx.fillRect(x, padTop+chartH-regH, barW, regH);
-    ctx.globalAlpha=1;
+    // Logged bar (full color)
+    if(log>0){
+      const bh=(log/maxVal)*chartH;
+      ctx.globalAlpha=1;ctx.fillStyle=repColor;
+      ctx.fillRect(x+barW+barGap,padTop+chartH-bh,barW,bh);
+      ctx.fillStyle='#444';ctx.font='10px system-ui';ctx.textAlign='center';ctx.textBaseline='bottom';
+      ctx.fillText(log,x+barW+barGap+barW/2,padTop+chartH-bh-2);
+    }
 
-    // Logged bar
-    const logH=(log/maxVal)*chartH;
-    ctx.fillStyle=repColor;
-    ctx.fillRect(x+barW+gap, padTop+chartH-logH, barW, logH);
-
-    // Value labels
-    ctx.fillStyle='#666';ctx.font='10px system-ui';ctx.textAlign='center';
-    if(reg>0)ctx.fillText(reg, x+barW/2, padTop+chartH-regH-3);
-    if(log>0)ctx.fillText(log, x+barW+gap+barW/2, padTop+chartH-logH-3);
-
-    // Category label
-    ctx.fillStyle='#888';ctx.font='10px system-ui';ctx.textAlign='center';
-    const label=kat.split(' ')[0]; // first word only
+    // Category label — rotated
     ctx.save();
-    ctx.translate(x+barW+gap/2, padTop+chartH+8);
-    ctx.rotate(-Math.PI/6);
-    ctx.fillText(label,0,0);
+    ctx.fillStyle='#888';ctx.font='10px system-ui';ctx.textAlign='right';ctx.textBaseline='middle';
+    ctx.translate(x+barW+barGap/2, padTop+chartH+10);
+    ctx.rotate(-Math.PI/4);
+    ctx.fillText(kat.split(' ')[0],0,0);
     ctx.restore();
   });
 }
@@ -2662,7 +2655,7 @@ function buildRegisteroversikt(){
 }
 
 // ── FORESLÅ ANTREKK ───────────────────────────────────────────────────────────
-let forslagState={occ:null,bucket:'Mildt',mode:'favoritter',current:{}};
+let forslagState={occ:null,bucket:'Mildt',mode:'favoritter',current:{},types:['Overdel','Underdel','Ytterlag','Sko']};
 const FORSLAG_BUCKETS={'Kaldt':[0,1,2],'Mildt':[3,4],'Varmt':[5,6]};
 
 function usageCountForItem(naam){
@@ -2716,6 +2709,14 @@ function renderForslag(){
         ${Object.keys(FORSLAG_BUCKETS).map(b=>`<button class="reg-filter-btn${st.bucket===b?' active':''}" onclick="forslagState.bucket='${b}';forslagState.current={};renderForslagResult()">${b}</button>`).join('')}
       </div>
     </div>
+    <div class="field"><label>Kategorier</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${PLAGG_TYPER.map(t=>{
+          const on=st.types.includes(t);
+          return`<button class="reg-filter-btn${on?' active':''}" onclick="toggleForslagType('${t}')">${t}</button>`;
+        }).join('')}
+      </div>
+    </div>
     <div style="display:flex;gap:8px;margin-bottom:1rem">
       <button class="reg-filter-btn${st.mode==='favoritter'?' active':''}" onclick="forslagState.mode='favoritter';forslagState.current={};renderForslagResult()">Favoritter (10+ ganger)</button>
       <button class="reg-filter-btn${st.mode==='sjelden'?' active':''}" onclick="forslagState.mode='sjelden';forslagState.current={};renderForslagResult()">Sjelden brukt</button>
@@ -2727,12 +2728,21 @@ function renderForslag(){
   if(st.occ)renderForslagResult();
 }
 
+function toggleForslagType(type){
+  const idx=forslagState.types.indexOf(type);
+  if(idx>=0)forslagState.types.splice(idx,1);
+  else forslagState.types.push(type);
+  forslagState.current={};
+  renderForslag();
+}
+
 function renderForslagResult(){
   const cont=document.getElementById('forslag-result');if(!cont)return;
   const st=forslagState;
   if(!st.occ){cont.innerHTML='';return;}
+  if(!st.types.length){cont.innerHTML='<div style="text-align:center;padding:1rem;color:var(--text3);font-size:13px">Velg minst én kategori.</div>';return;}
 
-  const typesToShow=PLAGG_TYPER.filter(t=>!['Smykker','Tilbehør'].includes(t));
+  const typesToShow=PLAGG_TYPER.filter(t=>st.types.includes(t));
   const suggestion={};
 
   typesToShow.forEach(type=>{
@@ -2784,7 +2794,7 @@ function swapForslag(type){
 function loggForslag(){
   // Pre-fill log with current suggestion
   const st=forslagState;
-  const plagg=PLAGG_TYPER.filter(t=>!['Smykker','Tilbehør'].includes(t)).map(type=>{
+  const plagg=PLAGG_TYPER.filter(t=>st.types.includes(t)).map(type=>{
     const slot=st.current[type];if(!slot||!slot.candidates.length)return null;
     const r=slot.candidates[slot.idx%slot.candidates.length];
     return{type:r.type,subtype:r.subtype||null,naam:r.naam,besk:r.besk||'',colors:r.colors||[]};
