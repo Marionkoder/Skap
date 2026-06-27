@@ -509,10 +509,14 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
     <div class="field"><label>Navn / tittel</label><input type="text" id="rm-navn"></div>
     <div class="field"><label>Beskrivelse (valgfritt)</label><textarea id="rm-besk" rows="2" style="resize:vertical;font-size:13px"></textarea></div>
     <div class="field"><label>Type</label>
-      <select id="rm-type" onchange="updateRmSubtype();updateFitOptions()"><option>Overdel</option><option>Underdel</option><option>Ytterlag</option><option>Sko</option><option>Tilbehør</option><option>Helfigur</option><option>Smykker</option></select>
+      <select id="rm-type" onchange="updateRmSubtype();updateRmSize();updateFitOptions()"><option>Overdel</option><option>Underdel</option><option>Ytterlag</option><option>Sko</option><option>Tilbehør</option><option>Helfigur</option><option>Smykker</option></select>
     </div>
     <div class="field"><label>Undertype</label>
       <select id="rm-subtype"></select>
+    </div>
+    <div class="field" id="rm-size-field" style="display:none">
+      <label>Størrelse</label>
+      <select id="rm-size"><option value="">Ingen størrelse</option></select>
     </div>
     <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div><label>Status</label>
@@ -555,7 +559,7 @@ const FARGE_KAT={
   'Lilla':[{n:'Varm lilla',h:'#952E8F'}],
   'Oransje og gul':[{n:'Oransje',h:'#DC7038'},{n:'Gyllengul',h:'#E8C832'},{n:'Okergul',h:'#C8A028'},{n:'Sennepsgul',h:'#B8860B'},{n:'Lysegul',h:'#F5EFA0'}],
   'Blå':[{n:'Nattblå',h:'#071932'},{n:'Mørk jeansblå',h:'#2A4870'},{n:'Kongeblå',h:'#3058C8'},{n:'Varm blå',h:'#4A7FA0'},{n:'Frisk blå',h:'#5A88B8'},{n:'Himmelblå',h:'#2A90D0'},{n:'Bondeblå',h:'#4A7888'},{n:'Lys bondeblå',h:'#80B0B8'}],
-  'Grønn':[{n:'Pistasjgrønn',h:'#C8D9A8'},{n:'Mintgrønn',h:'#7DD4B0'},{n:'Gressgrønn',h:'#61A85A'},{n:'Mørk gressgrønn',h:'#357A42'},{n:'Grangrønn',h:'#235A2E'},{n:'Sjøgrønn',h:'#167065'},{n:'Olivengrønn',h:'#6B7A2A'}],
+  'Grønn':[{n:'Pistasjgrønn',h:'#C8D9A8'},{n:'Mintgrønn',h:'#7DD4B0'},{n:'Grågrønn',h:'#8A9070'},{n:'Gressgrønn',h:'#61A85A'},{n:'Mørk gressgrønn',h:'#357A42'},{n:'Mørk grågrønn',h:'#6B7055'},{n:'Grangrønn',h:'#235A2E'},{n:'Sjøgrønn',h:'#167065'},{n:'Olivengrønn',h:'#6B7A2A'}],
   'Brun':[{n:'Mørkebrun',h:'#4d2600'},{n:'Mokkabrun',h:'#8B7068'},{n:'Lærbrun',h:'#C57E4B'},{n:'Mørk kamel',h:'#A8845A'},{n:'Kamel',h:'#C19A6B'}],
   'Metall':[{n:'Gull',h:'#C5A028',metal:true},{n:'Sølv',h:'#DFDFDF',metal:true}],
   'Grå og svart':[{n:'Mellomgrå',h:'#808080'},{n:'Grå',h:'#A9A9A9'},{n:'Svart',h:'#000000'}],
@@ -576,13 +580,13 @@ function catSq(c,size=13){
 const TEMP_CATS=["Iskaldt","Kaldt","Kjølig","Mildt","Linnt","Varmt","Glovarmt"];
 const PLAGG_TYPER=['Overdel','Underdel','Ytterlag','Sko','Tilbehør','Helfigur','Smykker'];
 const PLAGG_SUBTYPER={
-  'Overdel':['Bluse','Genser','Jakke','Singlet','Skjorte','T-skjorte','Topp','Treningstopp'],
-  'Underdel':['Bukse','Shorts','Skjørt','Tights','Treningsbukse'],
-  'Ytterlag':['Blazer','Boblejakke','Kåpe','Mellomlagsjakke','Skalljakke'],
+  'Overdel':['Badetøy','Bluse','Genser','Jakke','Singlet','Skjorte','T-skjorte','Topp','Treningstopp','Vest'],
+  'Underdel':['Badetøy','Bukse','Shorts','Skjørt','Tights','Treningsbukse'],
+  'Ytterlag':['Blazer','Boblejakke','Bukse','Kåpe','Mellomlagsjakke','Skalljakke'],
   'Sko':['Ballerinasko','Gummistøvler','Pensko','Sandaler','Sneakers','Sports- og fritidssko','Støvletter','Tøysko','Vintersko'],
-  'Helfigur':['Buksedress','Kjole','Våtdrakt'],
+  'Helfigur':['Buksedress','Kjole','Våtdrakt/badetøy'],
   'Smykker':['Armbånd','Brosje','Halskjede','Mansjettknapper','Ring','Øredobber'],
-  'Tilbehør':['Belte','Hansker','Lue','Ryggsekk','Sjal','Skjerf','Veske','Votter'],
+  'Tilbehør':['Belte','Forkle','Hansker','Lue','Ryggsekk','Sjal','Skjerf','Underskjørt','Veske','Votter'],
 };
 const STD_OCC=['Hverdag','Lett pyntet','Fest','Høytidelig','Friluftsliv','Trening','Jobb'];
 
@@ -1287,7 +1291,7 @@ function renderRegister(){
           ${r.mustReplace?`<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#fde8e8;color:#c0392b;white-space:nowrap">Må erstattes</span>`:''}
           ${r.fit&&r.fit!=='Passer'?`<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#fef3e2;color:#b07800;white-space:nowrap">${r.fit}</span>`:''}
         </div>
-        ${r.besk?`<div style="font-size:11px;color:var(--text3);margin-top:1px">${r.besk}</div>`:''}
+        <div style="font-size:11px;color:var(--text3);margin-top:1px">${[r.size,r.besk].filter(Boolean).join(' · ')}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:2px">Brukt ${uses} gang${uses===1?'':'er'}</div>
       </div>
       ${dots?`<div style="display:flex;gap:3px;flex-wrap:wrap">${dots}</div>`:''}
@@ -1331,11 +1335,30 @@ function renderRegOccasions(selected){
 function getRegOccasions(){
   return [...document.querySelectorAll('#rm-occasions input[type=checkbox]:checked')].map(cb=>cb.value);
 }
+const PLAGG_STRL={
+  'Overdel':['S','M','L','XL','36','38','40','42','One size'],
+  'Underdel':['S','M','L','XL','36','38','40','42','One size'],
+  'Ytterlag':['S','M','L','XL','36','38','40','42','One size'],
+  'Helfigur':['S','M','L','XL','36','38','40','42','One size'],
+  'Sko':['38','38.5','39','39.5','40','41','42'],
+};
+
 function updateRmSubtype(selected){
   const type=document.getElementById('rm-type')?.value;
   const sel=document.getElementById('rm-subtype');if(!sel)return;
   const subs=PLAGG_SUBTYPER[type]||[];
   sel.innerHTML=`<option value="">– Ingen undertype –</option>`+subs.map(s=>`<option value="${s}"${s===selected?' selected':''}>${s}</option>`).join('');
+  updateRmSize();
+}
+function updateRmSize(selected){
+  const type=document.getElementById('rm-type')?.value;
+  const field=document.getElementById('rm-size-field');
+  const sel=document.getElementById('rm-size');
+  if(!field||!sel)return;
+  const sizes=PLAGG_STRL[type]||[];
+  if(!sizes.length){field.style.display='none';return;}
+  field.style.display='block';
+  sel.innerHTML='<option value="">Ingen størrelse</option>'+sizes.map(s=>`<option value="${s}"${s===selected?' selected':''}>${s}</option>`).join('');
 }
 function updateFitOptions(fit){
   const type=document.getElementById('rm-type')?.value;
@@ -1356,6 +1379,7 @@ function openAddRegModal(){
   document.getElementById('rm-status').value='I skapet';
   document.getElementById('rm-replace').checked=false;
   updateRmSubtype();
+  updateRmSize();
   updateFitOptions();
   renderRegTempCheckboxes([]);
   renderRegOccasions([]);
@@ -1376,6 +1400,7 @@ function openEditRegModal(id){
   document.getElementById('rm-status').value=r.status;
   document.getElementById('rm-replace').checked=r.mustReplace||false;
   updateRmSubtype(r.subtype||'');
+  updateRmSize(r.size||'');
   updateFitOptions(r.fit||'');
   renderRegTempCheckboxes(r.temps||[]);
   renderRegOccasions(r.occasions||[]);
@@ -1397,11 +1422,12 @@ function saveRegItem(){
   const mustReplace=document.getElementById('rm-replace').checked;
   const fit=document.getElementById('rm-fit').value||null;
   const subtype=document.getElementById('rm-subtype').value||null;
+  const size=document.getElementById('rm-size')?.value||null;
   if(editingRegId){
     const r=register.find(x=>x.id==editingRegId);
-    if(r){r.naam=naam;r.besk=besk;r.type=document.getElementById('rm-type').value;r.subtype=subtype;r.status=document.getElementById('rm-status').value;r.colors=colors;r.temps=temps;r.occasions=occasions;r.mustReplace=mustReplace;r.fit=fit;}
+    if(r){r.naam=naam;r.besk=besk;r.type=document.getElementById('rm-type').value;r.subtype=subtype;r.status=document.getElementById('rm-status').value;r.colors=colors;r.temps=temps;r.occasions=occasions;r.mustReplace=mustReplace;r.fit=fit;r.size=size;}
   } else {
-    register.push({id:Date.now(),naam,besk,type:document.getElementById('rm-type').value,subtype,status:document.getElementById('rm-status').value,colors,temps,occasions,mustReplace,fit});
+    register.push({id:Date.now(),naam,besk,type:document.getElementById('rm-type').value,subtype,size,status:document.getElementById('rm-status').value,colors,temps,occasions,mustReplace,fit});
   }
   saveData();closeRegModal();renderRegister();
   // If register modal was opened from a plagg picker, add the new item to selected
@@ -1515,6 +1541,61 @@ function removeDefaultItem(plId,naam){
   pl.extraItems=(pl.extraItems||[]).filter(e=>e.naam!==naam);
   savePackLists();renderActivePackList();
 }
+function renderPackRegBrowser(plId, activeType, activeSub){
+  const pl=packLists.find(p=>p.id===plId);if(!pl)return'';
+
+  // Type buttons
+  const typesWithItems=PLAGG_TYPER.filter(t=>register.some(r=>r.type===t));
+  let html=`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
+    ${typesWithItems.map(t=>`<button class="reg-filter-btn${activeType===t?' active':''}" style="font-size:11px;padding:3px 10px"
+      onclick="setPackRegFilter('${plId}','${t}',null)">${t}</button>`).join('')}
+  </div>`;
+
+  if(activeType){
+    const subs=PLAGG_SUBTYPER[activeType]||[];
+    const subsWithItems=subs.filter(s=>register.some(r=>r.type===activeType&&r.subtype===s));
+    const noSubItems=register.filter(r=>r.type===activeType&&!r.subtype);
+
+    if(subsWithItems.length){
+      html+=`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">
+        ${noSubItems.length?`<button class="reg-filter-btn${activeSub===''?' active':''}" style="font-size:11px;padding:3px 10px"
+          onclick="setPackRegFilter('${plId}','${activeType}','')">Uten undertype</button>`:''}
+        ${subsWithItems.map(s=>`<button class="reg-filter-btn${activeSub===s?' active':''}" style="font-size:11px;padding:3px 10px"
+          onclick="setPackRegFilter('${plId}','${activeType}','${s}')">${s}</button>`).join('')}
+      </div>`;
+    }
+
+    // Items
+    let items=register.filter(r=>r.type===activeType);
+    if(activeSub!==null){
+      items=activeSub===''
+        ?items.filter(r=>!r.subtype)
+        :items.filter(r=>r.subtype===activeSub);
+    }
+
+    if(items.length){
+      html+=`<div style="display:flex;flex-wrap:wrap;gap:4px">
+        ${items.map(r=>{
+          const already=(pl.items||[]).find(i=>i.naam&&i.naam.toLowerCase()===r.naam.toLowerCase());
+          const dots=(r.colors||[]).slice(0,3).map(c=>`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c.h};border:0.5px solid rgba(0,0,0,0.1)"></span>`).join('');
+          const sizeStr=r.size?` (${r.size})`:'';
+          return `<button class="reg-filter-btn${already?' active':''}" style="font-size:11px;padding:3px 9px;display:flex;align-items:center;gap:4px"
+            onclick="${already?`removePackItemByName('${pl.id}','${r.naam.replace(/'/g,"\\'")}')`:`addRegItemToPack('${pl.id}','${r.id}')`}">
+            ${dots?`<span style="display:flex;gap:2px">${dots}</span>`:''}${r.naam}${sizeStr}</button>`;
+        }).join('')}
+      </div>`;
+    }
+  }
+  return html;
+}
+
+let packRegState={}; // {plId: {type, sub}}
+function setPackRegFilter(plId,type,sub){
+  packRegState[plId]={type,sub};
+  const cont=document.getElementById(`pack-reg-browser-${plId}`);
+  if(cont)cont.innerHTML=renderPackRegBrowser(plId,type,sub);
+}
+
 function addRegItemToPack(plId,regId){
   const pl=packLists.find(p=>p.id===plId);if(!pl)return;
   const regItem=register.find(r=>String(r.id)===String(regId));if(!regItem)return;
@@ -1603,22 +1684,11 @@ function renderActivePackList(){
     ?`<div class="analyse-block" style="margin-bottom:1.2rem">${clothesHtml}${eiHtml}</div>`
     :'<div style="font-size:13px;color:var(--text3);padding:0.5rem 0 1rem">Pakkelisten er tom. Velg plagg eller legg til punkter nedenfor.</div>';
 
-  // ── REGISTER BROWSER (grouped by type, compact) ───────────────────────────
-  const regByType={};
-  register.forEach(r=>{if(!regByType[r.type])regByType[r.type]=[];regByType[r.type].push(r);});
-  const regBrowserHtml=register.length?PLAGG_TYPER.filter(t=>regByType[t]?.length).map(type=>{
-    const items=regByType[type];
-    return `<div style="margin-bottom:0.6rem">
-      <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3);margin-bottom:4px">${type}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px">
-        ${items.map(r=>{
-          const already=(pl.items||[]).find(i=>i.naam&&i.naam.toLowerCase()===r.naam.toLowerCase());
-          const dots=(r.colors||[]).slice(0,3).map(c=>`<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c.h};border:0.5px solid rgba(0,0,0,0.1)"></span>`).join('');
-          return `<button class="reg-filter-btn${already?' active':''}" style="font-size:11px;padding:3px 9px;display:flex;align-items:center;gap:4px" onclick="${already?`removePackItemByName('${pl.id}','${r.naam.replace(/'/g,"\\'")}')`:`addRegItemToPack('${pl.id}','${r.id}')`}">${dots?dots+' ':''}${r.naam}</button>`;
-        }).join('')}
-      </div>
-    </div>`;
-  }).join('')
+  // ── REGISTER BROWSER (hierarchical type → subtype → item) ──────────────────
+  const regBrowserHtml=register.length?`
+    <div id="pack-reg-browser-${pl.id}">
+      ${renderPackRegBrowser(pl.id, null, null)}
+    </div>`
   :'<div style="font-size:13px;color:var(--text3)">Ingen plagg i register ennå.</div>';
 
   // ── DEFAULT LIST ITEMS ─────────────────────────────────────────────────────
@@ -2657,31 +2727,26 @@ function buildRegisteroversikt(){
 }
 
 // ── FORESLÅ ANTREKK ───────────────────────────────────────────────────────────
-let forslagState={occ:null,temps:[],mode:'favoritter',current:{},types:['Overdel','Underdel','Ytterlag','Sko']};
+let forslagState={occ:null,temp:null,mode:'favoritter',current:{},types:['Overdel','Underdel','Ytterlag','Sko']};
 
-function getCandidates(type,occ,temps,mode){
+function getCandidates(type,occ,temp,mode){
   let pool=register.filter(r=>{
-    if(r.type!==type)return false;
-    if(r.status==='På lager')return false;
-    const rTemps=r.temps||[];
-    if(!rTemps.length)return false;
-    if(!rTemps.some(t=>temps.includes(t)))return false;
-    const rOcc=r.occasions||[];
-    if(!rOcc.length)return false;
-    if(!rOcc.includes(occ))return false;
+    if(r.type!==type||r.status==='På lager')return false;
+    const rT=r.temps||[];if(!rT.length||!rT.includes(temp))return false;
+    const rO=r.occasions||[];if(!rO.length||!rO.includes(occ))return false;
     return true;
   });
   if(!pool.length)return[];
   pool=pool.map(r=>{
     const uses=usageCountForItem(r.naam);
-    const hasFavColor=(r.colors||[]).some(c=>favoritFarger.includes(c.h));
-    return{...r,uses,favScore:hasFavColor?1:0};
+    const fav=(r.colors||[]).some(c=>favoritFarger.includes(c.h))?1:0;
+    return{...r,uses,fav};
   });
   if(mode==='favoritter'){
     const favs=pool.filter(r=>r.uses>=10);
-    pool=(favs.length?favs:pool).sort((a,b)=>b.uses-a.uses||b.favScore-a.favScore);
+    pool=(favs.length?favs:pool).sort((a,b)=>b.uses-a.uses||b.fav-a.fav);
   } else {
-    pool=pool.sort((a,b)=>a.uses-b.uses||b.favScore-a.favScore);
+    pool=pool.sort((a,b)=>a.uses-b.uses||b.fav-a.fav);
   }
   return pool;
 }
@@ -2695,101 +2760,124 @@ function renderForslag(){
   }
   const st=forslagState;
   const occs=allOcc();
+
   cont.innerHTML=`
-    <div style="margin-bottom:1rem">
-      <div class="field"><label>Anledning</label>
-        <select id="forslag-occ" onchange="forslagState.occ=this.value;forslagState.current={};renderForslagResult()">
-          <option value="">Velg anledning…</option>
-          ${occs.map(o=>`<option value="${o}"${st.occ===o?' selected':''}}>${o}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field"><label>Temperatur (velg én eller flere)</label>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          ${TEMP_CATS.map((t,i)=>`<button class="reg-filter-btn${st.temps.includes(i)?' active':''}" style="font-size:11px;padding:4px 10px" onclick="toggleForslagTemp(${i})">${t}</button>`).join('')}
+    <div id="forslag-controls" style="margin-bottom:1rem">
+      <div class="field">
+        <label>Anledning</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+          ${occs.map(o=>`<button class="reg-filter-btn${st.occ===o?' active':''}" onclick="setForslagOcc('${o}')">${o}</button>`).join('')}
         </div>
       </div>
-      <div class="field"><label>Kategorier</label>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          ${PLAGG_TYPER.map(t=>`<button class="reg-filter-btn${st.types.includes(t)?' active':''}" style="font-size:12px" onclick="toggleForslagType('${t}')">${t}</button>`).join('')}
+      <div class="field">
+        <label>Temperatur</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+          ${TEMP_CATS.map((t,i)=>`<button class="reg-filter-btn${st.temp===i?' active':''}" onclick="setForslagTemp(${i})">${t}</button>`).join('')}
+        </div>
+      </div>
+      <div class="field">
+        <label>Kategorier</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+          ${PLAGG_TYPER.map(t=>`<button class="reg-filter-btn${st.types.includes(t)?' active':''}" onclick="toggleForslagType('${t}')">${t}</button>`).join('')}
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:0.5rem;flex-wrap:wrap">
-        <button class="reg-filter-btn${st.mode==='favoritter'?' active':''}" onclick="forslagState.mode='favoritter';forslagState.current={};renderForslagResult()">Favoritter (10+ ganger)</button>
-        <button class="reg-filter-btn${st.mode==='sjelden'?' active':''}" onclick="forslagState.mode='sjelden';forslagState.current={};renderForslagResult()">Sjelden brukt</button>
+        <button class="reg-filter-btn${st.mode==='favoritter'?' active':''}" onclick="setForslagMode('favoritter')">Favoritter (10+ ganger)</button>
+        <button class="reg-filter-btn${st.mode==='sjelden'?' active':''}" onclick="setForslagMode('sjelden')">Sjelden brukt</button>
       </div>
     </div>
     <div id="forslag-result"></div>`;
-  if(st.occ&&st.temps.length)renderForslagResult();
+
+  renderForslagResult();
 }
 
-function toggleForslagTemp(i){
-  const idx=forslagState.temps.indexOf(i);
-  if(idx>=0)forslagState.temps.splice(idx,1);
-  else forslagState.temps.push(i);
-  forslagState.current={};
-  renderForslag();
+function setForslagOcc(occ){
+  forslagState.occ=occ; forslagState.current={};
+  document.querySelectorAll('#forslag-controls .field:first-child .reg-filter-btn').forEach(b=>{
+    b.classList.toggle('active', b.textContent===occ);
+  });
+  renderForslagResult();
 }
-
+function setForslagTemp(i){
+  forslagState.temp=i; forslagState.current={};
+  document.querySelectorAll('#forslag-controls .field:nth-child(2) .reg-filter-btn').forEach((b,bi)=>{
+    b.classList.toggle('active', bi===i);
+  });
+  renderForslagResult();
+}
+function setForslagMode(mode){
+  forslagState.mode=mode; forslagState.current={};
+  document.querySelectorAll('#forslag-controls .reg-filter-btn').forEach(b=>{
+    if(b.textContent.startsWith('Favoritter')||b.textContent.startsWith('Sjelden')){
+      b.classList.toggle('active', (mode==='favoritter'&&b.textContent.startsWith('Favoritter'))||(mode==='sjelden'&&b.textContent.startsWith('Sjelden')));
+    }
+  });
+  renderForslagResult();
+}
 function toggleForslagType(type){
   const idx=forslagState.types.indexOf(type);
-  if(idx>=0)forslagState.types.splice(idx,1);
-  else forslagState.types.push(type);
+  if(idx>=0)forslagState.types.splice(idx,1); else forslagState.types.push(type);
   forslagState.current={};
-  renderForslag();
+  document.querySelectorAll('#forslag-controls .field:nth-child(3) .reg-filter-btn').forEach(b=>{
+    if(b.textContent===type)b.classList.toggle('active');
+  });
+  renderForslagResult();
 }
 
 function renderForslagResult(){
   const cont=document.getElementById('forslag-result');if(!cont)return;
   const st=forslagState;
-  if(!st.occ){cont.innerHTML='';return;}
-  if(!st.types.length){cont.innerHTML='<div style="text-align:center;padding:1rem;color:var(--text3);font-size:13px">Velg minst én kategori.</div>';return;}
-
+  if(!st.occ||st.temp===null){
+    cont.innerHTML='<div style="padding:1rem;font-size:13px;color:var(--text3)">Velg anledning og temperatur for å se forslag.</div>';
+    return;
+  }
+  if(!st.types.length){
+    cont.innerHTML='<div style="padding:1rem;font-size:13px;color:var(--text3)">Velg minst én kategori.</div>';
+    return;
+  }
   const typesToShow=PLAGG_TYPER.filter(t=>st.types.includes(t));
-  const suggestion={};
-
   typesToShow.forEach(type=>{
     if(st.current[type]===undefined){
-      const candidates=getCandidates(type,st.occ,st.temps,st.mode);
-      st.current[type]=candidates.length?[{candidates,idx:0}]:[];
+      const cands=getCandidates(type,st.occ,st.temp,st.mode);
+      st.current[type]=cands.length?[{cands,idx:0}]:[];
     }
   });
-
   let hasAny=false;
   const cards=typesToShow.flatMap(type=>{
-    const slots=st.current[type];
-    if(!slots||!slots.length||!slots[0].candidates.length)return[];
+    const slots=st.current[type]||[];
+    if(!slots.length)return[];
     hasAny=true;
-    return slots.map((slot,slotIdx)=>{
-      const r=slot.candidates[slot.idx%slot.candidates.length];
+    return slots.map((slot,si)=>{
+      const r=slot.cands[slot.idx%slot.cands.length];
       const dots=(r.colors||[]).map(c=>catSq(c,14)).join('');
       const primary=(r.colors||[]).find(c=>c.primary)||(r.colors||[])[0];
       const bg=primary?primary.h+'18':'var(--bg2)';
-      const canSwap=slot.candidates.length>1;
+      const canSwap=slot.cands.length>1;
+      const sizeStr=r.size?` · str. ${r.size}`:'';
       return`<div style="display:flex;align-items:center;gap:10px;padding:10px;background:${bg};border-radius:var(--radius);margin-bottom:6px">
-        ${dots?`<div style="display:flex;gap:3px;flex-shrink:0">${dots}</div>`:'<div style="width:14px"></div>'}
+        ${dots?`<div style="display:flex;gap:3px;flex-shrink:0">${dots}</div>`:''}
         <div style="flex:1;min-width:0">
           <div style="font-size:11px;color:var(--text3)">${type}${r.subtype?' / '+r.subtype:''}</div>
-          <div style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.naam}</div>
-          <div style="font-size:11px;color:var(--text3)">Brukt ${r.uses} gang${r.uses!==1?'er':''}</div>
+          <div style="font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.naam}</div>
+          <div style="font-size:11px;color:var(--text3)">Brukt ${r.uses}×${sizeStr}</div>
         </div>
         <div style="display:flex;gap:4px;flex-shrink:0">
-          ${canSwap?`<button class="btn-ghost" style="font-size:12px;padding:4px 8px" onclick="swapForslag('${type}',${slotIdx})">Bytt</button>`:''}
-          <button class="btn-ghost" style="font-size:16px;padding:2px 8px;color:#c0392b" onclick="removeForslagSlot('${type}',${slotIdx})">×</button>
+          ${canSwap?`<button class="btn-ghost" style="font-size:12px;padding:4px 8px" onclick="swapForslag('${type}',${si})">Bytt</button>`:''}
+          <button class="btn-ghost" style="font-size:16px;padding:2px 8px;color:#c0392b" onclick="removeForslagSlot('${type}',${si})">×</button>
         </div>
       </div>`;
-    }).concat([`<div style="margin-bottom:10px">
+    }).concat([`<div style="margin-bottom:8px">
       <button class="btn-ghost" style="font-size:12px;width:100%;border-style:dashed" onclick="addForslagSlot('${type}')">+ Legg til ${type.toLowerCase()}</button>
     </div>`]);
   }).join('');
 
   if(!hasAny){
     cont.innerHTML=`<div style="padding:1rem;background:var(--bg2);border-radius:var(--radius);font-size:13px;color:var(--text2);line-height:1.6">
-      Ingen plagg i registeret har registrert <strong>${st.occ}</strong> som anledning og valgte temperaturer.<br>
-      <span style="font-size:12px;color:var(--text3)">Rediger plagg i registeret og hak av for anledning og temperatur for å få forslag.</span>
+      Ingen plagg er registrert med <strong>${st.occ}</strong> og <strong>${TEMP_CATS[st.temp]}</strong>.<br>
+      <span style="font-size:12px;color:var(--text3)">Gå til registeret og legg til anledning og temperatur på plaggene dine.</span>
     </div>`;
     return;
   }
-
   cont.innerHTML=`<div>${cards}</div>
     <div style="display:flex;gap:8px;margin-top:1rem">
       <button class="btn-ghost" style="flex:1" onclick="forslagState.current={};renderForslagResult()">↺ Nytt forslag</button>
@@ -2797,50 +2885,39 @@ function renderForslagResult(){
     </div>`;
 }
 
-function swapForslag(type,slotIdx){
-  const slots=forslagState.current[type];if(!slots||!slots[slotIdx])return;
-  slots[slotIdx].idx=(slots[slotIdx].idx+1)%slots[slotIdx].candidates.length;
+function swapForslag(type,si){
+  const slots=forslagState.current[type];if(!slots||!slots[si])return;
+  slots[si].idx=(slots[si].idx+1)%slots[si].cands.length;
   renderForslagResult();
 }
-
-function removeForslagSlot(type,slotIdx){
+function removeForslagSlot(type,si){
   const slots=forslagState.current[type];if(!slots)return;
-  slots.splice(slotIdx,1);
-  if(!slots.length)delete forslagState.current[type];
+  slots.splice(si,1);if(!slots.length)delete forslagState.current[type];
   renderForslagResult();
 }
-
 function addForslagSlot(type){
   const st=forslagState;
-  const candidates=getCandidates(type,st.occ,st.temps,st.mode);
-  if(!candidates.length)return;
+  const cands=getCandidates(type,st.occ,st.temp,st.mode);
+  if(!cands.length)return;
   if(!st.current[type])st.current[type]=[];
-  // Start at a different item than existing slots
-  const usedIdx=new Set(st.current[type].map(s=>s.idx));
-  let newIdx=0;
-  while(usedIdx.has(newIdx)&&newIdx<candidates.length)newIdx++;
-  st.current[type].push({candidates,idx:newIdx});
+  const used=new Set(st.current[type].map(s=>s.idx));
+  let ni=0;while(used.has(ni)&&ni<cands.length)ni++;
+  st.current[type].push({cands,idx:ni});
   renderForslagResult();
 }
-
 function loggForslag(){
-  // Pre-fill log with current suggestion
   const st=forslagState;
   const plagg=PLAGG_TYPER.filter(t=>st.types.includes(t)).flatMap(type=>{
-    const slots=st.current[type]||[];
-    return slots.map(slot=>{
-      if(!slot.candidates.length)return null;
-      const r=slot.candidates[slot.idx%slot.candidates.length];
+    return(st.current[type]||[]).map(slot=>{
+      if(!slot.cands.length)return null;
+      const r=slot.cands[slot.idx%slot.cands.length];
       return{type:r.type,subtype:r.subtype||null,naam:r.naam,besk:r.besk||'',colors:r.colors||[]};
     }).filter(Boolean);
   });
-
-  // Switch to log tab and prefill
   document.querySelector('.nav button:nth-child(2)').click();
   setTimeout(()=>{
     if(st.occ){const sel=document.getElementById('log-occasion');if(sel)sel.value=st.occ;}
-    const midTemp=st.temps.length?st.temps[Math.floor(st.temps.length/2)]:3;
-    const slider=document.getElementById('temp-slider');if(slider){slider.value=midTemp;updateTemp(midTemp,'temp-cat-label');}
+    if(st.temp!==null){const sl=document.getElementById('temp-slider');if(sl){sl.value=st.temp;updateTemp(st.temp,'temp-cat-label');}}
     initPlaggPickerWithData('log',plagg);
   },100);
 }
