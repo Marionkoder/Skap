@@ -385,6 +385,7 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
     <button class="btn-ghost" onclick="openAddRegModal()">+ Nytt plagg</button>
   </div>
   <div class="reg-filters" id="reg-filters"></div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;display:none" id="reg-subtype-filters"></div>
   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:0.8rem" id="reg-color-filters"></div>
   <div class="reg-list" id="reg-list"></div>
 </div>
@@ -596,7 +597,7 @@ let outfits=[],scenarios=[],register=[],customOcc=[];
 let plaggCounters={log:{},sm:{},em:{}};
 const colorInstances={};
 let editingOutfitId=null,editingScenarioId=null,editingRegId=null;
-let regFilterType='Alle',regFilterStatus='Alle',regFilterKat='Alle',regFilterReplace=false;
+let regFilterType='Alle',regFilterStatus='Alle',regFilterKat='Alle',regFilterReplace=false,regFilterSubtype='Alle';
 
 function loadData(){
   // migrate from skap2_ keys if needed
@@ -1250,13 +1251,29 @@ function renderRegister(){
     const isActive=((['I skapet','På lager'].includes(t)&&t===regFilterStatus)||(!['I skapet','På lager'].includes(t)&&t===regFilterType));
     return `<button class="reg-filter-btn${isActive?' active':''}" onclick="setRegFilter('${t}')">${t}</button>`;
   }).join('')+`<button class="reg-filter-btn${regFilterReplace?' active':''}" style="color:${regFilterReplace?'#fff':'#c0392b'};border-color:#c0392b;${regFilterReplace?'background:#c0392b':''}" onclick="regFilterReplace=!regFilterReplace;renderRegister()">Må erstattes</button>`;
+
+  // Subtype filters — only show when a specific type is selected
+  const sf=document.getElementById('reg-subtype-filters');
+  const subs=PLAGG_SUBTYPER[regFilterType]||[];
+  if(sf){
+    if(subs.length&&regFilterType!=='Alle'){
+      sf.style.display='flex';
+      sf.innerHTML=['Alle',...subs].map(s=>`<button class="reg-filter-btn${s===regFilterSubtype?' active':''}" onclick="regFilterSubtype='${s}';renderRegister()" style="font-size:11px;padding:3px 9px">${s==='Alle'?'Alle underttyper':s}</button>`).join('');
+    } else {
+      sf.style.display='none';sf.innerHTML='';
+      regFilterSubtype='Alle';
+    }
+  }
+
   const cf=document.getElementById('reg-color-filters');
   cf.innerHTML=['Alle farger',...FARGEKAT_NAMES].map(k=>{
     const kk=k==='Alle farger'?'Alle':k;
     return `<button class="reg-filter-btn${kk===regFilterKat?' active':''}" onclick="setRegKatFilter('${kk}')" style="font-size:11px;padding:3px 9px">${k}</button>`;
   }).join('');
+
   let items=register;
   if(regFilterType!=='Alle'&&!['I skapet','På lager'].includes(regFilterType))items=items.filter(r=>r.type===regFilterType);
+  if(regFilterSubtype!=='Alle')items=items.filter(r=>r.subtype===regFilterSubtype);
   if(regFilterStatus!=='Alle')items=items.filter(r=>r.status===regFilterStatus);
   if(regFilterKat!=='Alle')items=items.filter(r=>(r.colors||[]).some(c=>katForShade(c.n)===regFilterKat));
   if(regFilterReplace)items=items.filter(r=>r.mustReplace);
@@ -1293,6 +1310,7 @@ function renderRegister(){
 function setRegFilter(v){
   if(['I skapet','På lager'].includes(v)){regFilterStatus=v;regFilterType='Alle';}
   else{regFilterType=v;regFilterStatus='Alle';}
+  regFilterSubtype='Alle';
   renderRegister();
 }
 function setRegKatFilter(v){regFilterKat=v;renderRegister();}
@@ -2664,13 +2682,17 @@ function usageCountForItem(naam){
 
 function getCandidates(type,occ,bucket,mode){
   const tempRange=FORSLAG_BUCKETS[bucket]||[3,4];
-  // Get register items matching type, occasion (if registered), temp
   let pool=register.filter(r=>{
     if(r.type!==type)return false;
     if(r.status==='På lager')return false;
-    // temp match
+    // Must have temps registered and at least one matching
     const temps=r.temps||[];
-    if(temps.length&&!temps.some(t=>tempRange.includes(t)))return false;
+    if(!temps.length)return false;
+    if(!temps.some(t=>tempRange.includes(t)))return false;
+    // Must have occasions registered and include selected occasion
+    const occasions=r.occasions||[];
+    if(!occasions.length)return false;
+    if(!occasions.includes(occ))return false;
     return true;
   });
   if(!pool.length)return[];
@@ -2774,7 +2796,10 @@ function renderForslagResult(){
   }).join('');
 
   if(!hasAny){
-    cont.innerHTML=`<div style="text-align:center;padding:2rem 1rem;color:var(--text3);font-size:13px">Ingen plagg i registeret passer til ${st.occ} i ${st.bucket} vær. Legg til temperaturer og anledninger på plaggene dine i registeret.</div>`;
+    cont.innerHTML=`<div style="padding:1rem;background:var(--bg2);border-radius:var(--radius);font-size:13px;color:var(--text2);line-height:1.6">
+      Ingen plagg i registeret har registrert <strong>${st.occ}</strong> som anledning og <strong>${st.bucket}</strong> som temperatur.<br>
+      <span style="font-size:12px;color:var(--text3)">Rediger plagg i registeret og hak av for anledning og temperatur for å få forslag.</span>
+    </div>`;
     return;
   }
 
