@@ -552,6 +552,7 @@ const FARGE_KAT={
   'Hvit og beige':[{n:'Hvit',h:'#FFFFFF'},{n:'Kremhvit',h:'#FAF6EF'},{n:'Lys beige',h:'#F0E8D9'}],
   'Rød':[{n:'Jordbærrød',h:'#EA1F41'},{n:'Tomatrød',h:'#E04535'},{n:'Rustrød',h:'#9E2415'},{n:'Vinrød',h:'#8B1030'}],
   'Rosa og fersken':[{n:'Pudderrosa',h:'#FAE0E4'},{n:'Gammelrosa',h:'#D47D7F'},{n:'Lys lakserosa',h:'#EAA898'},{n:'Lakserosa',h:'#F08070'},{n:'Fuchsia',h:'#FF2D98'},{n:'Cerise',h:'#E8155A'}],
+  'Lilla':[{n:'Varm lilla',h:'#952E8F'}],
   'Oransje og gul':[{n:'Oransje',h:'#DC7038'},{n:'Gyllengul',h:'#E8C832'},{n:'Okergul',h:'#C8A028'},{n:'Sennepsgul',h:'#B8860B'},{n:'Lysegul',h:'#F5EFA0'}],
   'Blå':[{n:'Nattblå',h:'#071932'},{n:'Mørk jeansblå',h:'#2A4870'},{n:'Kongeblå',h:'#3058C8'},{n:'Varm blå',h:'#4A7FA0'},{n:'Frisk blå',h:'#5A88B8'},{n:'Himmelblå',h:'#2A90D0'},{n:'Bondeblå',h:'#4A7888'},{n:'Lys bondeblå',h:'#80B0B8'}],
   'Grønn':[{n:'Pistasjgrønn',h:'#C8D9A8'},{n:'Mintgrønn',h:'#7DD4B0'},{n:'Gressgrønn',h:'#61A85A'},{n:'Mørk gressgrønn',h:'#357A42'},{n:'Grangrønn',h:'#235A2E'},{n:'Sjøgrønn',h:'#167065'},{n:'Olivengrønn',h:'#6B7A2A'}],
@@ -1797,7 +1798,6 @@ function drawColorBarChart(canvasId, logColors, regColors){
   const cont=document.getElementById(canvasId);
   if(!cont)return;
 
-  // Build per-category, per-shade counts
   const cats=Object.keys(FARGE_KAT).filter(k=>k!=='Hvit og beige'&&k!=='Grå og svart'&&k!=='Metall');
 
   function countByShade(colorList){
@@ -1814,12 +1814,11 @@ function drawColorBarChart(canvasId, logColors, regColors){
   const logByKat=countByShade(logColors);
   const regByKat=countByShade(regColors);
 
-  // Sort categories by logged usage (most used first)
-  const activeCats=cats.filter(k=>(logByKat[k]||regByKat[k]));
+  const activeCats=cats.filter(k=>logByKat[k]||regByKat[k]);
   activeCats.sort((a,b)=>{
-    const aTotal=Object.values(logByKat[a]||{}).reduce((s,v)=>s+v,0);
-    const bTotal=Object.values(logByKat[b]||{}).reduce((s,v)=>s+v,0);
-    return bTotal-aTotal;
+    const aT=Object.values(logByKat[a]||{}).reduce((s,v)=>s+v,0);
+    const bT=Object.values(logByKat[b]||{}).reduce((s,v)=>s+v,0);
+    return bT-aT;
   });
 
   if(!activeCats.length){
@@ -1827,17 +1826,20 @@ function drawColorBarChart(canvasId, logColors, regColors){
     return;
   }
 
-  function makeBar(shadeMap){
+  // Max totals for proportional scaling
+  const maxLog=Math.max(...activeCats.map(k=>Object.values(logByKat[k]||{}).reduce((s,v)=>s+v,0)),1);
+  const maxReg=Math.max(...activeCats.map(k=>Object.values(regByKat[k]||{}).reduce((s,v)=>s+v,0)),1);
+
+  function makeBar(shadeMap, maxVal){
     const total=Object.values(shadeMap||{}).reduce((s,v)=>s+v,0);
-    if(!total)return`<div style="height:16px;background:var(--bg3);border-radius:4px;flex:1"></div>`;
-    // Sort shades by count desc, map to actual color
+    if(!total)return`<div style="height:16px;border-radius:4px;flex:0 0 4px;background:var(--bg3)"></div>`;
+    const pct=Math.max(4,(total/maxVal)*100);
     const sorted=Object.entries(shadeMap).sort((a,b)=>b[1]-a[1]);
     const segs=sorted.map(([naam,count])=>{
       const shade=shadeForName(naam)||{h:'#ccc'};
-      const pct=(count/total*100).toFixed(1);
       return`<div title="${naam}: ${count}" style="flex:${count};background:${shade.h};min-width:2px"></div>`;
     }).join('');
-    return`<div style="display:flex;height:16px;border-radius:4px;overflow:hidden;flex:1">${segs}</div>`;
+    return`<div style="display:flex;height:16px;border-radius:4px;overflow:hidden;width:${pct}%;min-width:4px">${segs}</div>`;
   }
 
   cont.innerHTML=activeCats.map(kat=>{
@@ -1848,12 +1850,12 @@ function drawColorBarChart(canvasId, logColors, regColors){
     return`<div style="margin-bottom:14px">
       <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:5px">${kat}</div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
-        <div style="font-size:10px;color:var(--text3);width:58px;flex-shrink:0;text-align:right">Brukt${logTotal?` (${logTotal})`:''}</div>
-        ${makeBar(logMap)}
+        <div style="font-size:10px;color:var(--text3);width:64px;flex-shrink:0;text-align:right">Brukt${logTotal?` (${logTotal})`:''}</div>
+        <div style="flex:1">${makeBar(logMap,maxLog)}</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
-        <div style="font-size:10px;color:var(--text3);width:58px;flex-shrink:0;text-align:right">Registrert${regTotal?` (${regTotal})`:''}</div>
-        ${makeBar(regMap)}
+        <div style="font-size:10px;color:var(--text3);width:64px;flex-shrink:0;text-align:right">Registrert${regTotal?` (${regTotal})`:''}</div>
+        <div style="flex:1">${makeBar(regMap,maxReg)}</div>
       </div>
     </div>`;
   }).join('');
@@ -2655,30 +2657,21 @@ function buildRegisteroversikt(){
 }
 
 // ── FORESLÅ ANTREKK ───────────────────────────────────────────────────────────
-let forslagState={occ:null,bucket:'Mildt',mode:'favoritter',current:{},types:['Overdel','Underdel','Ytterlag','Sko']};
-const FORSLAG_BUCKETS={'Kaldt':[0,1,2],'Mildt':[3,4],'Varmt':[5,6]};
+let forslagState={occ:null,temps:[],mode:'favoritter',current:{},types:['Overdel','Underdel','Ytterlag','Sko']};
 
-function usageCountForItem(naam){
-  return outfits.reduce((s,o)=>s+(o.plagg||[]).filter(p=>p.naam&&p.naam.toLowerCase()===naam.toLowerCase()).length,0);
-}
-
-function getCandidates(type,occ,bucket,mode){
-  const tempRange=FORSLAG_BUCKETS[bucket]||[3,4];
+function getCandidates(type,occ,temps,mode){
   let pool=register.filter(r=>{
     if(r.type!==type)return false;
     if(r.status==='På lager')return false;
-    // Must have temps registered and at least one matching
-    const temps=r.temps||[];
-    if(!temps.length)return false;
-    if(!temps.some(t=>tempRange.includes(t)))return false;
-    // Must have occasions registered and include selected occasion
-    const occasions=r.occasions||[];
-    if(!occasions.length)return false;
-    if(!occasions.includes(occ))return false;
+    const rTemps=r.temps||[];
+    if(!rTemps.length)return false;
+    if(!rTemps.some(t=>temps.includes(t)))return false;
+    const rOcc=r.occasions||[];
+    if(!rOcc.length)return false;
+    if(!rOcc.includes(occ))return false;
     return true;
   });
   if(!pool.length)return[];
-  // Add usage count and favorittfarge score
   pool=pool.map(r=>{
     const uses=usageCountForItem(r.naam);
     const hasFavColor=(r.colors||[]).some(c=>favoritFarger.includes(c.h));
@@ -2686,18 +2679,10 @@ function getCandidates(type,occ,bucket,mode){
   });
   if(mode==='favoritter'){
     const favs=pool.filter(r=>r.uses>=10);
-    pool=favs.length?favs:pool.sort((a,b)=>b.uses-a.uses);
+    pool=(favs.length?favs:pool).sort((a,b)=>b.uses-a.uses||b.favScore-a.favScore);
   } else {
-    pool=pool.sort((a,b)=>a.uses-b.uses);
+    pool=pool.sort((a,b)=>a.uses-b.uses||b.favScore-a.favScore);
   }
-  // Within same mode, boost favorittfarger to top
-  pool.sort((a,b)=>{
-    if(mode==='favoritter'){
-      const aFav=a.uses>=10,bFav=b.uses>=10;
-      if(aFav!==bFav)return bFav?1:-1;
-    }
-    return b.favScore-a.favScore||0;
-  });
   return pool;
 }
 
@@ -2705,43 +2690,44 @@ function renderForslag(){
   const cont=document.getElementById('forslag-content');
   if(!cont)return;
   if(!register.length){
-    cont.innerHTML='<div class="empty" style="text-align:center;padding:3rem 1rem;color:var(--text3)">Legg til plagg i registeret for å få antrekksforslag.</div>';
+    cont.innerHTML='<div style="text-align:center;padding:3rem 1rem;color:var(--text3)">Legg til plagg i registeret for å få antrekksforslag.</div>';
     return;
   }
-
   const st=forslagState;
   const occs=allOcc();
-
-  // Controls
-  let html=`<div style="margin-bottom:1rem">
-    <div class="field"><label>Anledning</label>
-      <select id="forslag-occ" onchange="forslagState.occ=this.value;forslagState.current={};renderForslag()">
-        <option value="">Velg anledning…</option>
-        ${occs.map(o=>`<option value="${o}"${st.occ===o?' selected':''}>${o}</option>`).join('')}
-      </select>
-    </div>
-    <div class="field"><label>Temperatur</label>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${Object.keys(FORSLAG_BUCKETS).map(b=>`<button class="reg-filter-btn${st.bucket===b?' active':''}" onclick="forslagState.bucket='${b}';forslagState.current={};renderForslag()">${b}</button>`).join('')}
+  cont.innerHTML=`
+    <div style="margin-bottom:1rem">
+      <div class="field"><label>Anledning</label>
+        <select id="forslag-occ" onchange="forslagState.occ=this.value;forslagState.current={};renderForslagResult()">
+          <option value="">Velg anledning…</option>
+          ${occs.map(o=>`<option value="${o}"${st.occ===o?' selected':''}}>${o}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Temperatur (velg én eller flere)</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${TEMP_CATS.map((t,i)=>`<button class="reg-filter-btn${st.temps.includes(i)?' active':''}" style="font-size:11px;padding:4px 10px" onclick="toggleForslagTemp(${i})">${t}</button>`).join('')}
+        </div>
+      </div>
+      <div class="field"><label>Kategorier</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${PLAGG_TYPER.map(t=>`<button class="reg-filter-btn${st.types.includes(t)?' active':''}" style="font-size:12px" onclick="toggleForslagType('${t}')">${t}</button>`).join('')}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:0.5rem;flex-wrap:wrap">
+        <button class="reg-filter-btn${st.mode==='favoritter'?' active':''}" onclick="forslagState.mode='favoritter';forslagState.current={};renderForslagResult()">Favoritter (10+ ganger)</button>
+        <button class="reg-filter-btn${st.mode==='sjelden'?' active':''}" onclick="forslagState.mode='sjelden';forslagState.current={};renderForslagResult()">Sjelden brukt</button>
       </div>
     </div>
-    <div class="field"><label>Kategorier</label>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${PLAGG_TYPER.map(t=>{
-          const on=st.types.includes(t);
-          return`<button class="reg-filter-btn${on?' active':''}" onclick="toggleForslagType('${t}')">${t}</button>`;
-        }).join('')}
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:1rem">
-      <button class="reg-filter-btn${st.mode==='favoritter'?' active':''}" onclick="forslagState.mode='favoritter';forslagState.current={};renderForslag()">Favoritter (10+ ganger)</button>
-      <button class="reg-filter-btn${st.mode==='sjelden'?' active':''}" onclick="forslagState.mode='sjelden';forslagState.current={};renderForslag()">Sjelden brukt</button>
-    </div>
-  </div>
-  <div id="forslag-result"></div>`;
+    <div id="forslag-result"></div>`;
+  if(st.occ&&st.temps.length)renderForslagResult();
+}
 
-  cont.innerHTML=html;
-  if(st.occ)renderForslagResult();
+function toggleForslagTemp(i){
+  const idx=forslagState.temps.indexOf(i);
+  if(idx>=0)forslagState.temps.splice(idx,1);
+  else forslagState.temps.push(i);
+  forslagState.current={};
+  renderForslag();
 }
 
 function toggleForslagType(type){
@@ -2763,35 +2749,42 @@ function renderForslagResult(){
 
   typesToShow.forEach(type=>{
     if(st.current[type]===undefined){
-      const candidates=getCandidates(type,st.occ,st.bucket,st.mode);
-      st.current[type]={candidates,idx:0};
+      const candidates=getCandidates(type,st.occ,st.temps,st.mode);
+      st.current[type]=candidates.length?[{candidates,idx:0}]:[];
     }
   });
 
   let hasAny=false;
-  const cards=typesToShow.map(type=>{
-    const slot=st.current[type];
-    if(!slot||!slot.candidates.length)return'';
+  const cards=typesToShow.flatMap(type=>{
+    const slots=st.current[type];
+    if(!slots||!slots.length||!slots[0].candidates.length)return[];
     hasAny=true;
-    const r=slot.candidates[slot.idx%slot.candidates.length];
-    const dots=(r.colors||[]).map(c=>catSq(c,14)).join('');
-    const primary=(r.colors||[]).find(c=>c.primary)||(r.colors||[])[0];
-    const bg=primary?primary.h+'18':'var(--bg2)';
-    const canSwap=slot.candidates.length>1;
-    return`<div style="display:flex;align-items:center;gap:10px;padding:10px;background:${bg};border-radius:var(--radius);margin-bottom:6px">
-      ${dots?`<div style="display:flex;gap:3px;flex-shrink:0">${dots}</div>`:'<div style="width:14px"></div>'}
-      <div style="flex:1;min-width:0">
-        <div style="font-size:11px;color:var(--text3)">${type}${r.subtype?' / '+r.subtype:''}</div>
-        <div style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.naam}</div>
-        <div style="font-size:11px;color:var(--text3)">Brukt ${r.uses} gang${r.uses!==1?'er':''}</div>
-      </div>
-      ${canSwap?`<button class="btn-ghost" style="font-size:12px;padding:4px 10px;flex-shrink:0" onclick="swapForslag('${type}')">Bytt</button>`:''}
-    </div>`;
+    return slots.map((slot,slotIdx)=>{
+      const r=slot.candidates[slot.idx%slot.candidates.length];
+      const dots=(r.colors||[]).map(c=>catSq(c,14)).join('');
+      const primary=(r.colors||[]).find(c=>c.primary)||(r.colors||[])[0];
+      const bg=primary?primary.h+'18':'var(--bg2)';
+      const canSwap=slot.candidates.length>1;
+      return`<div style="display:flex;align-items:center;gap:10px;padding:10px;background:${bg};border-radius:var(--radius);margin-bottom:6px">
+        ${dots?`<div style="display:flex;gap:3px;flex-shrink:0">${dots}</div>`:'<div style="width:14px"></div>'}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;color:var(--text3)">${type}${r.subtype?' / '+r.subtype:''}</div>
+          <div style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.naam}</div>
+          <div style="font-size:11px;color:var(--text3)">Brukt ${r.uses} gang${r.uses!==1?'er':''}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          ${canSwap?`<button class="btn-ghost" style="font-size:12px;padding:4px 8px" onclick="swapForslag('${type}',${slotIdx})">Bytt</button>`:''}
+          <button class="btn-ghost" style="font-size:16px;padding:2px 8px;color:#c0392b" onclick="removeForslagSlot('${type}',${slotIdx})">×</button>
+        </div>
+      </div>`;
+    }).concat([`<div style="margin-bottom:10px">
+      <button class="btn-ghost" style="font-size:12px;width:100%;border-style:dashed" onclick="addForslagSlot('${type}')">+ Legg til ${type.toLowerCase()}</button>
+    </div>`]);
   }).join('');
 
   if(!hasAny){
     cont.innerHTML=`<div style="padding:1rem;background:var(--bg2);border-radius:var(--radius);font-size:13px;color:var(--text2);line-height:1.6">
-      Ingen plagg i registeret har registrert <strong>${st.occ}</strong> som anledning og <strong>${st.bucket}</strong> som temperatur.<br>
+      Ingen plagg i registeret har registrert <strong>${st.occ}</strong> som anledning og valgte temperaturer.<br>
       <span style="font-size:12px;color:var(--text3)">Rediger plagg i registeret og hak av for anledning og temperatur for å få forslag.</span>
     </div>`;
     return;
@@ -2804,27 +2797,49 @@ function renderForslagResult(){
     </div>`;
 }
 
-function swapForslag(type){
-  const slot=forslagState.current[type];if(!slot)return;
-  slot.idx=(slot.idx+1)%slot.candidates.length;
+function swapForslag(type,slotIdx){
+  const slots=forslagState.current[type];if(!slots||!slots[slotIdx])return;
+  slots[slotIdx].idx=(slots[slotIdx].idx+1)%slots[slotIdx].candidates.length;
+  renderForslagResult();
+}
+
+function removeForslagSlot(type,slotIdx){
+  const slots=forslagState.current[type];if(!slots)return;
+  slots.splice(slotIdx,1);
+  if(!slots.length)delete forslagState.current[type];
+  renderForslagResult();
+}
+
+function addForslagSlot(type){
+  const st=forslagState;
+  const candidates=getCandidates(type,st.occ,st.temps,st.mode);
+  if(!candidates.length)return;
+  if(!st.current[type])st.current[type]=[];
+  // Start at a different item than existing slots
+  const usedIdx=new Set(st.current[type].map(s=>s.idx));
+  let newIdx=0;
+  while(usedIdx.has(newIdx)&&newIdx<candidates.length)newIdx++;
+  st.current[type].push({candidates,idx:newIdx});
   renderForslagResult();
 }
 
 function loggForslag(){
   // Pre-fill log with current suggestion
   const st=forslagState;
-  const plagg=PLAGG_TYPER.filter(t=>st.types.includes(t)).map(type=>{
-    const slot=st.current[type];if(!slot||!slot.candidates.length)return null;
-    const r=slot.candidates[slot.idx%slot.candidates.length];
-    return{type:r.type,subtype:r.subtype||null,naam:r.naam,besk:r.besk||'',colors:r.colors||[]};
-  }).filter(Boolean);
+  const plagg=PLAGG_TYPER.filter(t=>st.types.includes(t)).flatMap(type=>{
+    const slots=st.current[type]||[];
+    return slots.map(slot=>{
+      if(!slot.candidates.length)return null;
+      const r=slot.candidates[slot.idx%slot.candidates.length];
+      return{type:r.type,subtype:r.subtype||null,naam:r.naam,besk:r.besk||'',colors:r.colors||[]};
+    }).filter(Boolean);
+  });
 
   // Switch to log tab and prefill
   document.querySelector('.nav button:nth-child(2)').click();
   setTimeout(()=>{
     if(st.occ){const sel=document.getElementById('log-occasion');if(sel)sel.value=st.occ;}
-    const bucket=FORSLAG_BUCKETS[st.bucket]||[3,4];
-    const midTemp=bucket[Math.floor(bucket.length/2)];
+    const midTemp=st.temps.length?st.temps[Math.floor(st.temps.length/2)]:3;
     const slider=document.getElementById('temp-slider');if(slider){slider.value=midTemp;updateTemp(midTemp,'temp-cat-label');}
     initPlaggPickerWithData('log',plagg);
   },100);
