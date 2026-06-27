@@ -301,7 +301,7 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
   <button class="active" onclick="showTab('hjem',this)">Hjem</button>
   <button onclick="showTab('logg',this)">Logg</button>
   <button onclick="showTab('historikk',this)">Historikk</button>
-  <button onclick="showTab('planlegg',this)">Planlegg</button>
+  <button onclick="showTab('planlegg',this)">Faste antrekk</button>
   <button onclick="showTab('register',this)">Register</button>
   <button onclick="showTab('pakkeliste',this)">Pakkeliste</button>
   <button onclick="showTab('analyse',this)">Analyse</button>
@@ -372,8 +372,8 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
 <!-- PLANLEGG -->
 <div class="section" id="tab-planlegg">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-    <p style="font-size:13px;color:var(--text2)">Planlegg antrekk for ulike scenarioer.</p>
-    <button class="btn-ghost" onclick="openNewScenarioModal()">+ Nytt scenario</button>
+    <p style="font-size:13px;color:var(--text2)">Lagre faste antrekk som bunad, dresskode eller andre gjenbrukbare kombinasjoner.</p>
+    <button class="btn-ghost" onclick="openNewScenarioModal()">+ Nytt fast antrekk</button>
   </div>
   <div id="scenario-list"></div>
 </div>
@@ -402,21 +402,13 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
 <!-- ANALYSE -->
 <div class="section" id="tab-analyse">
 
-  <details class="analyse-block" open ontoggle="if(this.open)renderAnalyse()">
+  <details class="analyse-block" open>
     <summary class="analyse-block-title" style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center">
       Farger du bruker <span style="font-size:16px;color:var(--text3)">›</span>
     </summary>
     <div style="margin-top:1rem">
       <div id="stats-cards-log" class="stats-grid"></div>
-      <div style="margin-top:1rem">
-        <div style="display:flex;gap:12px;font-size:11px;color:var(--text3);margin-bottom:8px">
-          <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#4A7FA0"></span>Registrert</span>
-          <span style="display:flex;align-items:center;gap:4px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#EA1F41"></span>Brukt</span>
-        </div>
-        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-          <canvas id="color-bar-chart" height="180" style="display:block"></canvas>
-        </div>
-      </div>
+      <div id="color-bar-chart" style="margin-top:1rem"></div>
       <div id="gap-analysis" style="margin-top:1rem"></div>
     </div>
   </details>
@@ -455,9 +447,9 @@ input[type="range"]{width:100%;accent-color:var(--text);margin-top:4px;}
 <!-- Modal: nytt/rediger scenario -->
 <div class="modal-overlay" id="scenario-modal">
   <div class="modal">
-    <h2 id="scenario-modal-title">Nytt scenario</h2>
+    <h2 id="scenario-modal-title">Nytt fast antrekk</h2>
     <div class="field">
-      <label>Scenario / formål</label>
+      <label>Navn på antrekket</label>
       <input type="text" id="sm-scenario" placeholder="f.eks. Tilskuer skirenn, Barnedåp i varmt vær…">
     </div>
     <div class="row2">
@@ -1177,7 +1169,7 @@ function getSmTemps(){return [...document.querySelectorAll('#sm-temp-btns .reg-f
 // ── PLANLEGG / SCENARIOER ─────────────────────────────────────────────────────
 function openNewScenarioModal(){
   editingScenarioId=null;
-  document.getElementById('scenario-modal-title').textContent='Nytt scenario';
+  document.getElementById('scenario-modal-title').textContent='Nytt fast antrekk';
   document.getElementById('sm-scenario').value='';
   document.getElementById('sm-notes').value='';
   renderSmOccBtns([]);
@@ -1188,7 +1180,7 @@ function openNewScenarioModal(){
 function openEditScenarioModal(id){
   const s=scenarios.find(x=>x.id===id);if(!s)return;
   editingScenarioId=id;
-  document.getElementById('scenario-modal-title').textContent='Rediger scenario';
+  document.getElementById('scenario-modal-title').textContent='Rediger fast antrekk';
   document.getElementById('sm-scenario').value=s.scenario||'';
   document.getElementById('sm-notes').value=s.notes||'';
   renderSmOccBtns(s.occasions||[s.occasion].filter(Boolean));
@@ -1199,7 +1191,7 @@ function openEditScenarioModal(id){
 function closeScenarioModal(){document.getElementById('scenario-modal').classList.remove('open');clearPlaggContainer('sm');editingScenarioId=null;}
 function saveScenario(){
   const scenario=document.getElementById('sm-scenario').value.trim();
-  if(!scenario){alert('Fyll inn scenario/formål.');return;}
+  if(!scenario){alert('Fyll inn navn på antrekket.');return;}
   const occs=getSmOccs();
   const temps=getSmTemps();
   // Keep legacy single-value fields for backwards compatibility
@@ -1219,7 +1211,7 @@ function saveScenario(){
 }
 function renderScenarios(){
   const list=document.getElementById('scenario-list');
-  if(!scenarios.length){list.innerHTML='<div class="log-empty">Ingen scenarioer lagt til ennå.<br><span style="font-size:12px">Trykk «+ Nytt scenario» for å komme i gang.</span></div>';return;}
+  if(!scenarios.length){list.innerHTML='<div class="log-empty">Ingen faste antrekk lagt til ennå.<br><span style="font-size:12px">Trykk «+ Nytt fast antrekk» for å komme i gang.</span></div>';return;}
   list.innerHTML=scenarios.map(s=>{
     const ph=(s.plagg||[]).map(p=>{
       const dots=(p.colors||[]).map(c=>catSq(c)).join('');
@@ -1241,7 +1233,7 @@ function renderScenarios(){
     </div>`;
   }).join('');
 }
-function deleteScenario(id){confirmAction('Slette dette scenarioet?',()=>{scenarios=scenarios.filter(s=>s.id!==id);saveData();renderScenarios();});}
+function deleteScenario(id){confirmAction('Slette dette faste antrekket?',()=>{scenarios=scenarios.filter(s=>s.id!==id);saveData();renderScenarios();});}
 
 // ── REGISTER ──────────────────────────────────────────────────────────────────
 function renderRegister(){
@@ -1661,7 +1653,7 @@ function renderActivePackList(){
       <input type="checkbox" ${chk?'checked':''} onchange="togglePackOutfit('${pl.id}',${o.id},this.checked)">
       <div><div style="font-size:13px;font-weight:500">${label}</div>
       ${ps?`<div style="font-size:12px;color:var(--text2);margin-top:1px">${ps}</div>`:''}
-      <div style="font-size:11px;color:var(--text3);margin-top:1px">${o.src==='scenario'?'Scenario':'Logget'}${o.tempLabel?' · '+o.tempLabel:''}</div></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:1px">${o.src==='scenario'?'Fast antrekk':'Logget'}${o.tempLabel?' · '+o.tempLabel:''}</div></div>
     </div>`;
   }).join('')||'<div style="font-size:13px;color:var(--text3);padding:0.5rem 0">Ingen antrekk matcher filtrene.</div>';
 
@@ -1802,79 +1794,69 @@ function barChart(entries,maxVal,colorMap){
   }).join('');
 }
 function drawColorBarChart(canvasId, logColors, regColors){
-  const canvas=document.getElementById(canvasId);
-  if(!canvas)return;
+  const cont=document.getElementById(canvasId);
+  if(!cont)return;
 
-  // Count per FARGE_KAT category (exclude neutral)
+  // Build per-category, per-shade counts
   const cats=Object.keys(FARGE_KAT).filter(k=>k!=='Hvit og beige'&&k!=='Grå og svart'&&k!=='Metall');
-  const regCount={}, logCount={};
-  cats.forEach(k=>{regCount[k]=0;logCount[k]=0;});
-  regColors.forEach(c=>{const k=katForShade(c.n);if(k&&regCount[k]!==undefined)regCount[k]++;});
-  logColors.forEach(c=>{const k=katForShade(c.n);if(k&&logCount[k]!==undefined)logCount[k]++;});
-  const activeCats=cats.filter(k=>regCount[k]>0||logCount[k]>0);
+
+  function countByShade(colorList){
+    const m={};
+    colorList.forEach(c=>{
+      const k=katForShade(c.n);
+      if(!k||!cats.includes(k))return;
+      if(!m[k])m[k]={};
+      m[k][c.n]=(m[k][c.n]||0)+1;
+    });
+    return m;
+  }
+
+  const logByKat=countByShade(logColors);
+  const regByKat=countByShade(regColors);
+
+  // Sort categories by logged usage (most used first)
+  const activeCats=cats.filter(k=>(logByKat[k]||regByKat[k]));
+  activeCats.sort((a,b)=>{
+    const aTotal=Object.values(logByKat[a]||{}).reduce((s,v)=>s+v,0);
+    const bTotal=Object.values(logByKat[b]||{}).reduce((s,v)=>s+v,0);
+    return bTotal-aTotal;
+  });
 
   if(!activeCats.length){
-    canvas.width=300;canvas.height=60;
-    const ctx=canvas.getContext('2d');
-    ctx.fillStyle='#aaa';ctx.font='13px system-ui';ctx.textBaseline='middle';
-    ctx.fillText('Ingen fargedata ennå',10,30);
+    cont.innerHTML='<div style="color:var(--text3);font-size:13px;padding:0.5rem 0">Ingen fargedata ennå.</div>';
     return;
   }
 
-  const barW=18, barGap=4, groupGap=12;
-  const padTop=16, padBottom=52, padLeft=28, padRight=10;
-  const chartH=120;
-  const H=padTop+chartH+padBottom;
-  const W=padLeft+activeCats.length*(barW*2+barGap+groupGap)+padRight;
+  function makeBar(shadeMap){
+    const total=Object.values(shadeMap||{}).reduce((s,v)=>s+v,0);
+    if(!total)return`<div style="height:16px;background:var(--bg3);border-radius:4px;flex:1"></div>`;
+    // Sort shades by count desc, map to actual color
+    const sorted=Object.entries(shadeMap).sort((a,b)=>b[1]-a[1]);
+    const segs=sorted.map(([naam,count])=>{
+      const shade=shadeForName(naam)||{h:'#ccc'};
+      const pct=(count/total*100).toFixed(1);
+      return`<div title="${naam}: ${count}" style="flex:${count};background:${shade.h};min-width:2px"></div>`;
+    }).join('');
+    return`<div style="display:flex;height:16px;border-radius:4px;overflow:hidden;flex:1">${segs}</div>`;
+  }
 
-  canvas.width=W; canvas.height=H;
-  const ctx=canvas.getContext('2d');
-  ctx.clearRect(0,0,W,H);
-
-  const maxVal=Math.max(...activeCats.flatMap(k=>[regCount[k],logCount[k]]),1);
-
-  // Y gridlines and labels
-  const ySteps=[0, Math.ceil(maxVal/2), maxVal];
-  ySteps.forEach(v=>{
-    const y=padTop+chartH-(v/maxVal)*chartH;
-    ctx.fillStyle='#999';ctx.font='10px system-ui';ctx.textAlign='right';ctx.textBaseline='middle';
-    ctx.fillText(v,padLeft-4,y);
-    ctx.beginPath();ctx.strokeStyle='#e0e0d8';ctx.lineWidth=0.5;
-    ctx.moveTo(padLeft,y);ctx.lineTo(W-padRight,y);ctx.stroke();
-  });
-
-  activeCats.forEach((kat,i)=>{
-    const x=padLeft+i*(barW*2+barGap+groupGap);
-    const reg=regCount[kat], log=logCount[kat];
-    const repColor=(FARGE_KAT[kat]||[]).find(s=>!isNeutral(s.h))?.h||'#888';
-
-    // Registered bar (lighter)
-    if(reg>0){
-      const bh=(reg/maxVal)*chartH;
-      ctx.globalAlpha=0.4;ctx.fillStyle=repColor;
-      ctx.fillRect(x,padTop+chartH-bh,barW,bh);
-      ctx.globalAlpha=1;
-      ctx.fillStyle='#666';ctx.font='10px system-ui';ctx.textAlign='center';ctx.textBaseline='bottom';
-      ctx.fillText(reg,x+barW/2,padTop+chartH-bh-2);
-    }
-
-    // Logged bar (full color)
-    if(log>0){
-      const bh=(log/maxVal)*chartH;
-      ctx.globalAlpha=1;ctx.fillStyle=repColor;
-      ctx.fillRect(x+barW+barGap,padTop+chartH-bh,barW,bh);
-      ctx.fillStyle='#444';ctx.font='10px system-ui';ctx.textAlign='center';ctx.textBaseline='bottom';
-      ctx.fillText(log,x+barW+barGap+barW/2,padTop+chartH-bh-2);
-    }
-
-    // Category label — rotated
-    ctx.save();
-    ctx.fillStyle='#888';ctx.font='10px system-ui';ctx.textAlign='right';ctx.textBaseline='middle';
-    ctx.translate(x+barW+barGap/2, padTop+chartH+10);
-    ctx.rotate(-Math.PI/4);
-    ctx.fillText(kat.split(' ')[0],0,0);
-    ctx.restore();
-  });
+  cont.innerHTML=activeCats.map(kat=>{
+    const logMap=logByKat[kat]||{};
+    const regMap=regByKat[kat]||{};
+    const logTotal=Object.values(logMap).reduce((s,v)=>s+v,0);
+    const regTotal=Object.values(regMap).reduce((s,v)=>s+v,0);
+    return`<div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:500;color:var(--text);margin-bottom:5px">${kat}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+        <div style="font-size:10px;color:var(--text3);width:58px;flex-shrink:0;text-align:right">Brukt${logTotal?` (${logTotal})`:''}</div>
+        ${makeBar(logMap)}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="font-size:10px;color:var(--text3);width:58px;flex-shrink:0;text-align:right">Registrert${regTotal?` (${regTotal})`:''}</div>
+        ${makeBar(regMap)}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function buildShadeData(colorList){
@@ -1895,12 +1877,12 @@ function renderAnalyse(){
   const allColors2=[...logColors,...scenarios.flatMap(s=>(s.plagg||[]).flatMap(p=>p.colors||[]))];
   document.getElementById('stats-cards-log').innerHTML=`
     <div class="stat-card"><div class="stat-num">${outfits.length}</div><div class="stat-label">Loggede antrekk</div></div>
-    <div class="stat-card"><div class="stat-num">${scenarios.length}</div><div class="stat-label">Planlagte scenarioer</div></div>
+    <div class="stat-card"><div class="stat-num">${scenarios.length}</div><div class="stat-label">Faste antrekk</div></div>
     <div class="stat-card"><div class="stat-num">${[...new Set(outfits.map(o=>o.occasion))].length}</div><div class="stat-label">Anledninger</div></div>
     <div class="stat-card"><div class="stat-num">${[...new Set(logColors.map(c=>katForShade(c.n)||c.n))].length}</div><div class="stat-label">Farger brukt</div></div>`;
 
   const regColors=register.flatMap(r=>r.colors||[]);
-  setTimeout(()=>drawColorBarChart('color-bar-chart', logColors, regColors), 100);
+  drawColorBarChart('color-bar-chart', logColors, regColors);
 
   const tempLog={},tempPlan={};
   outfits.forEach(o=>{if(o.tempLabel)tempLog[o.tempLabel]=(tempLog[o.tempLabel]||0)+1;});
@@ -2376,7 +2358,7 @@ function renderLogScenarioPicker(){
   const cont=document.getElementById('log-scenario-list');
   if(!cont)return;
   if(!scenarios.length){
-    cont.innerHTML='<div style="font-size:13px;color:var(--text3);padding:4px 0">Ingen planlagte scenarioer ennå.</div>';
+    cont.innerHTML='<div style="font-size:13px;color:var(--text3);padding:4px 0">Ingen faste antrekk ennå.</div>';
     return;
   }
   cont.innerHTML=scenarios.map(s=>{
@@ -2696,14 +2678,26 @@ function getCandidates(type,occ,bucket,mode){
     return true;
   });
   if(!pool.length)return[];
-  // Add usage count
-  pool=pool.map(r=>({...r,uses:usageCountForItem(r.naam)}));
+  // Add usage count and favorittfarge score
+  pool=pool.map(r=>{
+    const uses=usageCountForItem(r.naam);
+    const hasFavColor=(r.colors||[]).some(c=>favoritFarger.includes(c.h));
+    return{...r,uses,favScore:hasFavColor?1:0};
+  });
   if(mode==='favoritter'){
     const favs=pool.filter(r=>r.uses>=10);
     pool=favs.length?favs:pool.sort((a,b)=>b.uses-a.uses);
   } else {
     pool=pool.sort((a,b)=>a.uses-b.uses);
   }
+  // Within same mode, boost favorittfarger to top
+  pool.sort((a,b)=>{
+    if(mode==='favoritter'){
+      const aFav=a.uses>=10,bFav=b.uses>=10;
+      if(aFav!==bFav)return bFav?1:-1;
+    }
+    return b.favScore-a.favScore||0;
+  });
   return pool;
 }
 
@@ -2721,14 +2715,14 @@ function renderForslag(){
   // Controls
   let html=`<div style="margin-bottom:1rem">
     <div class="field"><label>Anledning</label>
-      <select id="forslag-occ" onchange="forslagState.occ=this.value;forslagState.current={};renderForslagResult()">
+      <select id="forslag-occ" onchange="forslagState.occ=this.value;forslagState.current={};renderForslag()">
         <option value="">Velg anledning…</option>
         ${occs.map(o=>`<option value="${o}"${st.occ===o?' selected':''}>${o}</option>`).join('')}
       </select>
     </div>
     <div class="field"><label>Temperatur</label>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${Object.keys(FORSLAG_BUCKETS).map(b=>`<button class="reg-filter-btn${st.bucket===b?' active':''}" onclick="forslagState.bucket='${b}';forslagState.current={};renderForslagResult()">${b}</button>`).join('')}
+        ${Object.keys(FORSLAG_BUCKETS).map(b=>`<button class="reg-filter-btn${st.bucket===b?' active':''}" onclick="forslagState.bucket='${b}';forslagState.current={};renderForslag()">${b}</button>`).join('')}
       </div>
     </div>
     <div class="field"><label>Kategorier</label>
@@ -2740,8 +2734,8 @@ function renderForslag(){
       </div>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:1rem">
-      <button class="reg-filter-btn${st.mode==='favoritter'?' active':''}" onclick="forslagState.mode='favoritter';forslagState.current={};renderForslagResult()">Favoritter (10+ ganger)</button>
-      <button class="reg-filter-btn${st.mode==='sjelden'?' active':''}" onclick="forslagState.mode='sjelden';forslagState.current={};renderForslagResult()">Sjelden brukt</button>
+      <button class="reg-filter-btn${st.mode==='favoritter'?' active':''}" onclick="forslagState.mode='favoritter';forslagState.current={};renderForslag()">Favoritter (10+ ganger)</button>
+      <button class="reg-filter-btn${st.mode==='sjelden'?' active':''}" onclick="forslagState.mode='sjelden';forslagState.current={};renderForslag()">Sjelden brukt</button>
     </div>
   </div>
   <div id="forslag-result"></div>`;
@@ -2908,12 +2902,12 @@ function renderHjem(){
         <div style="display:flex;flex-direction:column;gap:10px;max-width:280px">
           <button class="btn-primary" style="margin-top:0" onclick="document.querySelector('.nav button:nth-child(2)').click()">+ Logg et antrekk</button>
           <button class="btn-ghost" onclick="document.querySelector('.nav button:nth-child(5)').click()">→ Legg til plagg i register</button>
-          <button class="btn-ghost" onclick="document.querySelector('.nav button:nth-child(4)').click()">→ Planlegg et scenario</button>
+          <button class="btn-ghost" onclick="document.querySelector('.nav button:nth-child(4)').click()">→ Faste antrekk</button>
         </div>
         <div style="margin-top:2.5rem;display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--text3);text-align:left;border-top:0.5px solid var(--border);padding-top:1.5rem">
           <div><strong style="color:var(--text2)">Logg</strong> — Registrer hva du har på deg og når</div>
           <div><strong style="color:var(--text2)">Register</strong> — Registrer ett og ett plagg, eller la det bygges opp gradvis basert på loggede antrekk.</div>
-          <div><strong style="color:var(--text2)">Planlegg</strong> — Sett sammen antrekk for fremtidige anledninger</div>
+          <div><strong style="color:var(--text2)">Faste antrekk</strong> — Lagre bunad og andre faste antrekk</div>
           <div><strong style="color:var(--text2)">Pakkeliste</strong> — Sett sammen pakkelister fra registeret ditt</div>
           <div><strong style="color:var(--text2)">Analyse</strong> — Se mønstre i garderoben din</div>
         </div>
@@ -2997,7 +2991,7 @@ function renderHjem(){
         </div>
         <div style="background:var(--bg2);border-radius:var(--radius);padding:12px 10px;text-align:center">
           <div style="font-size:22px;font-weight:600;color:var(--text)">${scenarios.length}</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px">scenarioer</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">faste antrekk</div>
         </div>
       </div>
 
@@ -3006,7 +3000,7 @@ function renderHjem(){
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:1.2rem">
         <button class="btn-primary" style="margin-top:0" onclick="document.querySelector('.nav button:nth-child(2)').click()">+ Logg dagens antrekk</button>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <button class="btn-ghost" onclick="document.querySelector('.nav button:nth-child(4)').click()">Planlegg scenario</button>
+          <button class="btn-ghost" onclick="document.querySelector('.nav button:nth-child(4)').click()">Faste antrekk</button>
           <button class="btn-ghost" onclick="document.querySelector('.nav button:nth-child(6)').click()">Ny pakkeliste</button>
         </div>
       </div>
